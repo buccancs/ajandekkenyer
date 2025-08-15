@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.GSRRecording" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="colorPrimary">@color/gsr_primary</item>
+        <item name="colorSecondary">@color/gsr_secondary</item>
+        <item name="colorError">@color/gsr_error</item>
+    </style>
+
+    <style name="Theme.GSRRecording" parent="Base.Theme.GSRRecording" />
+</resources>
