@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- GSR Recording System colors -->
+    <color name="gsr_primary">#1976D2</color>
+    <color name="gsr_primary_variant">#1565C0</color>
+    <color name="gsr_secondary">#388E3C</color>
+    <color name="gsr_secondary_variant">#2E7D32</color>
+    <color name="gsr_error">#D32F2F</color>
+    <color name="gsr_warning">#F57C00</color>
+    <color name="gsr_success">#388E3C</color>
+    
+    <!-- Status colors -->
+    <color name="status_connected">#4CAF50</color>
+    <color name="status_disconnected">#F44336</color>
+    <color name="status_recording">#FF5722</color>
+    <color name="status_ready">#2196F3</color>
+</resources>

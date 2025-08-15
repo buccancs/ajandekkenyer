@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GSR Recording</string>
+    <string name="recording_system_title">Multi-Sensor Recording System</string>
+    <string name="mobile_unit_subtitle">Mobile Data Collection Unit</string>
+    
+    <!-- Connection strings -->
+    <string name="connection_status">Connection Status</string>
+    <string name="connected_to">Connected to %1$s</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connecting">Connecting...</string>
+    
+    <!-- Recording strings -->
+    <string name="recording_status">Recording Status</string>
+    <string name="recording_session">Recording: %1$s</string>
+    <string name="ready_to_record">Ready to record</string>
+    <string name="start_recording">Start Recording</string>
+    <string name="stop_recording">Stop Recording</string>
+    
+    <!-- Device status strings -->
+    <string name="device_status">Device Status</string>
+    <string name="shimmer_gsr">Shimmer GSR</string>
+    <string name="thermal_camera">Thermal Camera</string>
+    <string name="battery">Battery</string>
+    <string name="battery_level">%1$d%%</string>
+    
+    <!-- Session strings -->
+    <string name="recent_sessions">Recent Sessions</string>
+    <string name="session_created">Session created: %1$s</string>
+    
+    <!-- Error messages -->
+    <string name="error_connection_failed">Failed to connect to PC</string>
+    <string name="error_recording_failed">Failed to start recording</string>
+    <string name="error_device_not_found">Device not found</string>
+    <string name="error_permission_denied">Permission denied</string>
+    
+    <!-- Permissions -->
+    <string name="permission_camera_title">Camera Permission</string>
+    <string name="permission_camera_description">Camera access is required for video recording</string>
+    <string name="permission_bluetooth_title">Bluetooth Permission</string>
+    <string name="permission_bluetooth_description">Bluetooth access is required for sensor connection</string>
+    <string name="permission_storage_title">Storage Permission</string>
+    <string name="permission_storage_description">Storage access is required to save recordings</string>
+    
+    <!-- Notifications -->
+    <string name="notification_recording_title">GSR Recording Active</string>
+    <string name="notification_recording_description">Recording sensor data...</string>
+    <string name="notification_channel_name">Recording Service</string>
+    <string name="notification_channel_description">Notifications for active recording sessions</string>
+</resources>

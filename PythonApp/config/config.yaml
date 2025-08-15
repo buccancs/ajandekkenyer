@@ -1,0 +1,25 @@
+debug: false
+network:
+  auth_token_length: 32
+  host: 0.0.0.0
+  max_connections: 10
+  port: 9000
+  timeout: 30
+  use_tls: false
+recording:
+  auto_save_interval: 60
+  compression_enabled: true
+  max_session_duration: 7200
+  output_directory: sessions
+sensors:
+  rgb_camera_enabled: true
+  rgb_fps: 30
+  shimmer_enabled: true
+  shimmer_sampling_rate: 128
+  thermal_camera_enabled: true
+  thermal_fps: 25
+sync:
+  max_drift_ms: 100
+  ntp_server_port: 8889
+  sync_interval: 60
+  tolerance_ms: 5

@@ -1,0 +1,36 @@
+# Configuration for Multi-Sensor Recording System
+
+# Network Configuration
+network:
+  host: "0.0.0.0"
+  port: 9000
+  max_connections: 10
+  timeout: 30
+  use_tls: false
+  auth_token_length: 32
+
+# Sensor Configuration
+sensors:
+  shimmer_enabled: true
+  shimmer_sampling_rate: 128
+  thermal_camera_enabled: true
+  thermal_fps: 25
+  rgb_camera_enabled: true
+  rgb_fps: 30
+
+# Time Synchronization Configuration
+sync:
+  ntp_server_port: 8889
+  sync_interval: 60
+  tolerance_ms: 5
+  max_drift_ms: 100
+
+# Recording Configuration
+recording:
+  output_directory: "sessions"
+  max_session_duration: 7200  # 2 hours in seconds
+  auto_save_interval: 60
+  compression_enabled: true
+
+# Debug mode
+debug: false
