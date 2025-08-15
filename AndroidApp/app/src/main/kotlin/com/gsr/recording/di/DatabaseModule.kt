@@ -3,6 +3,8 @@ package com.gsr.recording.di
 import android.content.Context
 import androidx.room.Room
 import com.gsr.recording.data.database.*
+import com.gsr.recording.device.ShimmerDeviceManager
+import com.gsr.recording.device.ThermalCameraManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -47,5 +49,21 @@ object DatabaseModule {
     @Provides
     fun provideDeviceDao(database: GSRDatabase): DeviceDao {
         return database.deviceDao()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideShimmerDeviceManager(
+        @ApplicationContext context: Context
+    ): ShimmerDeviceManager {
+        return ShimmerDeviceManager(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideThermalCameraManager(
+        @ApplicationContext context: Context
+    ): ThermalCameraManager {
+        return ThermalCameraManager(context)
     }
 }

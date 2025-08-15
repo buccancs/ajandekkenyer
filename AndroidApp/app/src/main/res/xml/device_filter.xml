@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- USB device filter for thermal cameras -->
+    <usb-device vendor-id="4660" product-id="22136" />  <!-- TopDon TC001 -->
+    <usb-device vendor-id="4660" product-id="22137" />  <!-- TopDon TC002 -->
+    <usb-device vendor-id="9029" product-id="26761" />  <!-- Alternative vendor -->
+</resources>

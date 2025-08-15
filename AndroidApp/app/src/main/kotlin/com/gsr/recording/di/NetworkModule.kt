@@ -1,6 +1,7 @@
 package com.gsr.recording.di
 
 import com.gsr.recording.data.network.DesktopControllerApi
+import com.gsr.recording.data.network.NetworkService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -56,5 +57,11 @@ object NetworkModule {
     @Singleton
     fun provideDesktopControllerApi(retrofit: Retrofit): DesktopControllerApi {
         return retrofit.create(DesktopControllerApi::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideNetworkService(): NetworkService {
+        return NetworkService()
     }
 }

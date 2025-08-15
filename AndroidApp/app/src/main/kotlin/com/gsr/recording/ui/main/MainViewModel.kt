@@ -15,6 +15,12 @@ import kotlinx.coroutines.delay
 import javax.inject.Inject
 import com.gsr.recording.domain.repository.SessionRepository
 import com.gsr.recording.domain.repository.DeviceRepository
+import com.gsr.recording.data.network.NetworkService
+import com.gsr.recording.data.network.SessionConfiguration
+import com.gsr.recording.device.ShimmerDeviceManager
+import com.gsr.recording.device.ThermalCameraManager
+import com.gsr.recording.service.DataCollectionService
+import java.util.UUID
 
 /**
  * ViewModel for the main screen of the GSR Recording application.
@@ -24,7 +30,10 @@ import com.gsr.recording.domain.repository.DeviceRepository
 class MainViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sessionRepository: SessionRepository,
-    private val deviceRepository: DeviceRepository
+    private val deviceRepository: DeviceRepository,
+    private val networkService: NetworkService,
+    private val shimmerDeviceManager: ShimmerDeviceManager,
+    private val thermalCameraManager: ThermalCameraManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(MainUiState())
@@ -33,6 +42,8 @@ class MainViewModel @Inject constructor(
     init {
         // Initialize the view model
         loadInitialState()
+        observeDeviceStates()
+        observeNetworkState()
     }
     
     private fun loadInitialState() {
@@ -47,6 +58,50 @@ class MainViewModel @Inject constructor(
             
             // Check initial device connections
             checkDeviceConnections()
+            
+            // Load recent sessions
+            loadRecentSessions()
+        }
+    }
+    
+    private fun observeDeviceStates() {
+        viewModelScope.launch {
+            // Observe Shimmer device status
+            shimmerDeviceManager.deviceStatus.collect { status ->
+                updateUiState { 
+                    copy(shimmerConnected = status.isConnected())
+                }
+            }
+        }
+        
+        viewModelScope.launch {
+            // Observe thermal camera status
+            thermalCameraManager.deviceStatus.collect { status ->
+                updateUiState { 
+                    copy(thermalCameraConnected = status.isConnected())
+                }
+            }
+        }
+    }
+    
+    private fun observeNetworkState() {
+        viewModelScope.launch {
+            networkService.connectionState.collect { state ->
+                updateUiState { 
+                    copy(
+                        isConnectedToPC = state.isConnected(),
+                        isConnecting = state.isConnecting()
+                    )
+                }
+            }
+        }
+        
+        viewModelScope.launch {
+            networkService.lastError.collect { error ->
+                if (error != null) {
+                    updateUiState { copy(errorMessage = error) }
+                }
+            }
         }
     }
     
@@ -55,22 +110,37 @@ class MainViewModel @Inject constructor(
             try {
                 updateUiState { copy(isConnecting = true) }
                 
-                // Implement actual PC connection logic
-                // This would use a network repository to connect to the PC controller
-                // For demonstration purposes, simulate connection with network call
-                delay(2000) // Simulate network delay
+                // Initialize network service with server address
+                val serverAddress = _uiState.value.serverAddress ?: "192.168.1.100:9000"
+                networkService.initialize(serverAddress)
                 
-                // In a real implementation, this would:
-                // 1. Establish TCP/UDP connection to Python desktop app
-                // 2. Exchange handshake messages
-                // 3. Verify device compatibility
-                // 4. Synchronize session parameters
+                // Attempt connection to desktop controller
+                val deviceId = android.provider.Settings.Secure.getString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ANDROID_ID
+                )
                 
-                updateUiState { 
-                    copy(
-                        isConnectedToPC = true,
-                        isConnecting = false
-                    )
+                val result = networkService.connectToDesktop(
+                    deviceId = deviceId,
+                    appVersion = "1.0.0"
+                )
+                
+                if (result.isSuccess) {
+                    updateUiState { 
+                        copy(
+                            isConnectedToPC = true,
+                            isConnecting = false,
+                            errorMessage = null
+                        )
+                    }
+                } else {
+                    updateUiState { 
+                        copy(
+                            isConnectedToPC = false,
+                            isConnecting = false,
+                            errorMessage = result.exceptionOrNull()?.message ?: "Connection failed"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 updateUiState { 
@@ -87,14 +157,14 @@ class MainViewModel @Inject constructor(
     fun disconnectFromPC() {
         viewModelScope.launch {
             try {
-                // Implement actual PC disconnection logic
-                // This would properly close network connections and cleanup resources
+                networkService.disconnect()
                 
                 updateUiState { 
                     copy(
                         isConnectedToPC = false,
                         currentSessionId = null,
-                        isRecording = false
+                        isRecording = false,
+                        errorMessage = null
                     )
                 }
             } catch (e: Exception) {
@@ -113,28 +183,48 @@ class MainViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                // Implement actual recording start logic
-                val sessionId = "session_${System.currentTimeMillis()}"
+                val sessionId = "session_${UUID.randomUUID()}"
                 
-                // In a real implementation, this would:
-                // 1. Initialize recording service
-                // 2. Start Shimmer GSR sensor streaming
-                // 3. Start thermal camera capture
-                // 4. Begin data synchronization
-                // 5. Send start signal to desktop application
+                // Create session configuration
+                val configuration = SessionConfiguration(
+                    sampleRate = 51, // Hz
+                    recordingDuration = null, // Unlimited
+                    enableGSR = true,
+                    enableThermal = true,
+                    notes = "Mobile GSR recording session"
+                )
                 
-                // For now, simulate the recording process
-                simulateRecordingStart(sessionId)
+                // Start session on desktop
+                val sessionResult = networkService.startSession(
+                    sessionId = sessionId,
+                    participantId = null, // Can be set from UI
+                    configuration = configuration
+                )
                 
-                updateUiState { 
-                    copy(
-                        isRecording = true,
-                        currentSessionId = sessionId
-                    )
+                if (sessionResult.isSuccess) {
+                    // Start local data collection service
+                    val serviceIntent = Intent(context, DataCollectionService::class.java).apply {
+                        action = DataCollectionService.ACTION_START_RECORDING
+                        putExtra(DataCollectionService.EXTRA_SESSION_ID, sessionId)
+                        putExtra(DataCollectionService.EXTRA_SAMPLE_RATE, 51)
+                    }
+                    context.startForegroundService(serviceIntent)
+                    
+                    updateUiState { 
+                        copy(
+                            isRecording = true,
+                            currentSessionId = sessionId,
+                            errorMessage = null
+                        )
+                    }
+                    
+                    // Add to recent sessions
+                    addToRecentSessions(sessionId)
+                } else {
+                    updateUiState { 
+                        copy(errorMessage = "Failed to start recording session: ${sessionResult.exceptionOrNull()?.message}")
+                    }
                 }
-                
-                // Add to recent sessions
-                addToRecentSessions(sessionId)
                 
             } catch (e: Exception) {
                 updateUiState { 
@@ -147,16 +237,22 @@ class MainViewModel @Inject constructor(
     fun stopRecording() {
         viewModelScope.launch {
             try {
-                // Implement actual recording stop logic
-                // This would:
-                // 1. Stop all sensor data streams
-                // 2. Finalize data files
-                // 3. Send completion signal to desktop
-                // 4. Generate session summary
+                val currentSessionId = _uiState.value.currentSessionId
+                if (currentSessionId != null) {
+                    // Stop desktop session
+                    networkService.stopSession(currentSessionId)
+                    
+                    // Stop local data collection service
+                    val serviceIntent = Intent(context, DataCollectionService::class.java).apply {
+                        action = DataCollectionService.ACTION_STOP_RECORDING
+                    }
+                    context.startService(serviceIntent)
+                }
                 
                 updateUiState { 
                     copy(
-                        isRecording = false
+                        isRecording = false,
+                        errorMessage = null
                         // Keep session ID for reference
                     )
                 }
@@ -172,22 +268,74 @@ class MainViewModel @Inject constructor(
     fun checkDeviceConnections() {
         viewModelScope.launch {
             try {
-                // Implement actual device checking logic
-                // This would query Bluetooth and USB managers for device status
+                // Scan for available devices
+                val shimmerDevices = shimmerDeviceManager.scanForDevices()
+                val thermalDevices = thermalCameraManager.scanForDevices()
                 
-                // Simulate device status checks
-                val shimmerStatus = simulateShimmerCheck()
-                val thermalStatus = simulateThermalCameraCheck()
-                
+                // Update device status based on availability
                 updateUiState { 
                     copy(
-                        shimmerConnected = shimmerStatus,
-                        thermalCameraConnected = thermalStatus
+                        shimmerConnected = shimmerDevices.isNotEmpty() && shimmerDeviceManager.deviceStatus.value.isConnected(),
+                        thermalCameraConnected = thermalDevices.isNotEmpty() && thermalCameraManager.deviceStatus.value.isConnected()
                     )
                 }
+                
+                // Save discovered devices to repository
+                (shimmerDevices + thermalDevices).forEach { device ->
+                    deviceRepository.addDevice(device)
+                }
+                
             } catch (e: Exception) {
                 updateUiState { 
                     copy(errorMessage = "Failed to check devices: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    fun connectShimmerDevice() {
+        viewModelScope.launch {
+            try {
+                val devices = shimmerDeviceManager.scanForDevices()
+                if (devices.isNotEmpty()) {
+                    val result = shimmerDeviceManager.connectDevice(devices.first())
+                    if (result.isFailure) {
+                        updateUiState { 
+                            copy(errorMessage = "Failed to connect Shimmer device: ${result.exceptionOrNull()?.message}")
+                        }
+                    }
+                } else {
+                    updateUiState { 
+                        copy(errorMessage = "No Shimmer devices found")
+                    }
+                }
+            } catch (e: Exception) {
+                updateUiState { 
+                    copy(errorMessage = "Error connecting Shimmer device: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    fun connectThermalCamera() {
+        viewModelScope.launch {
+            try {
+                val devices = thermalCameraManager.scanForDevices()
+                if (devices.isNotEmpty()) {
+                    val result = thermalCameraManager.connectDevice(devices.first())
+                    if (result.isFailure) {
+                        updateUiState { 
+                            copy(errorMessage = "Failed to connect thermal camera: ${result.exceptionOrNull()?.message}")
+                        }
+                    }
+                } else {
+                    updateUiState { 
+                        copy(errorMessage = "No thermal cameras found")
+                    }
+                }
+            } catch (e: Exception) {
+                updateUiState { 
+                    copy(errorMessage = "Error connecting thermal camera: ${e.message}")
                 }
             }
         }
@@ -202,7 +350,6 @@ class MainViewModel @Inject constructor(
     }
     
     private fun getBatteryLevel(): Int {
-        // Implement actual battery level reading
         return try {
             val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
             batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
@@ -219,41 +366,32 @@ class MainViewModel @Inject constructor(
         }
     }
     
-    // Simulation functions - in real implementation these would be replaced with actual SDK calls
-    private suspend fun simulateRecordingStart(sessionId: String) {
-        // Simulate initialization delay
-        delay(1000)
-        
-        // In real implementation:
-        // - Start foreground service for continuous data collection
-        // - Initialize Shimmer GSR sensors via Bluetooth
-        // - Configure thermal camera via USB OTG
-        // - Setup data synchronization protocol
-        // - Begin streaming data to desktop application
-    }
-    
-    private suspend fun simulateShimmerCheck(): Boolean {
-        // In real implementation, this would:
-        // - Check Bluetooth adapter status
-        // - Scan for paired Shimmer devices
-        // - Verify device connectivity and battery status
-        // - Test GSR sensor functionality
-        
-        // For demonstration, randomly simulate device presence
-        return System.currentTimeMillis() % 3 != 0L
-    }
-    
-    private suspend fun simulateThermalCameraCheck(): Boolean {
-        // In real implementation, this would:
-        // - Check USB OTG support
-        // - Enumerate connected USB devices
-        // - Verify TopDon thermal camera presence
-        // - Test camera initialization and frame capture
-        
-        // For demonstration, randomly simulate device presence
-        return System.currentTimeMillis() % 2 == 0L
+    private suspend fun loadRecentSessions() {
+        try {
+            val recentSessions = sessionRepository.getRecentSessions(5)
+                .getOrNull()
+                ?.map { it.sessionId }
+                ?: emptyList()
+            
+            updateUiState { 
+                copy(recentSessions = recentSessions)
+            }
+        } catch (e: Exception) {
+            // Ignore errors when loading recent sessions
+        }
     }
 }
+
+// Extension functions for connection state
+private fun com.gsr.recording.data.network.NetworkConnectionState.isConnected() = 
+    this == com.gsr.recording.data.network.NetworkConnectionState.CONNECTED
+
+private fun com.gsr.recording.data.network.NetworkConnectionState.isConnecting() = 
+    this == com.gsr.recording.data.network.NetworkConnectionState.CONNECTING
+
+private fun com.gsr.recording.data.model.ConnectionStatus.isConnected() = 
+    this == com.gsr.recording.data.model.ConnectionStatus.CONNECTED || 
+    this == com.gsr.recording.data.model.ConnectionStatus.STREAMING
 
 /**
  * UI state for the main screen.
