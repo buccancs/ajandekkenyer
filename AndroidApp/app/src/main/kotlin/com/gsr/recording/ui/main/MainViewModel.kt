@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import javax.inject.Inject
+import com.gsr.recording.domain.repository.SessionRepository
+import com.gsr.recording.domain.repository.DeviceRepository
 
 /**
  * ViewModel for the main screen of the GSR Recording application.
@@ -20,7 +22,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val sessionRepository: SessionRepository,
+    private val deviceRepository: DeviceRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(MainUiState())
