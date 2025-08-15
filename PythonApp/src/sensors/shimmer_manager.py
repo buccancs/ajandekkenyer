@@ -96,13 +96,19 @@ class ShimmerManager:
     def _check_shimmer_libraries(self) -> bool:
         """Check if Shimmer libraries are available."""
         try:
-            # Try to import PyShimmer or other Shimmer libraries
-            # This is a placeholder since PyShimmer might not be available
-            # import shimmer3
-            # return True
-            return False  # For now, assume not available
+            # Try to import PyShimmer libraries
+            import pyshimmer
+            self.pyshimmer = pyshimmer
+            return True
         except ImportError:
-            return False
+            try:
+                # Alternative: try shimmer3 library
+                import shimmer3
+                self.shimmer3 = shimmer3
+                return True
+            except ImportError:
+                # Fallback to simulation mode
+                return False
     
     def start(self) -> None:
         """Start the Shimmer manager."""
@@ -140,13 +146,46 @@ class ShimmerManager:
         
         if self.shimmer_available:
             try:
-                # TODO: Implement actual Shimmer device scanning
-                # This would use the Shimmer library to discover devices
-                pass
+                if hasattr(self, 'pyshimmer'):
+                    # Use PyShimmer library for scanning
+                    devices = self.pyshimmer.discover_devices(timeout=10)
+                    for device_info in devices:
+                        shimmer_device = ShimmerDeviceInfo(
+                            device_id=device_info.get('id', f"shimmer_{len(discovered_devices)}"),
+                            name=device_info.get('name', 'Shimmer3 GSR+'),
+                            mac_address=device_info.get('mac_address'),
+                            firmware_version=device_info.get('firmware_version'),
+                            sampling_rate=self.config.sensors.shimmer_sampling_rate,
+                            enabled_sensors=device_info.get('sensors', ["GSR", "PPG", "Accelerometer"])
+                        )
+                        discovered_devices.append(shimmer_device)
+                        
+                        with self._lock:
+                            self.devices[shimmer_device.device_id] = shimmer_device
+                
+                elif hasattr(self, 'shimmer3'):
+                    # Use shimmer3 library for scanning
+                    discovered_macs = self.shimmer3.discover_devices()
+                    for i, mac_address in enumerate(discovered_macs):
+                        shimmer_device = ShimmerDeviceInfo(
+                            device_id=f"shimmer_{i:03d}",
+                            name="Shimmer3 GSR+",
+                            mac_address=mac_address,
+                            sampling_rate=self.config.sensors.shimmer_sampling_rate,
+                            enabled_sensors=["GSR", "PPG", "Accelerometer"]
+                        )
+                        discovered_devices.append(shimmer_device)
+                        
+                        with self._lock:
+                            self.devices[shimmer_device.device_id] = shimmer_device
+                            
             except Exception as e:
                 self.logger.error(f"Device scan failed: {e}")
-        else:
-            # Simulation mode - create mock devices
+                # Fallback to simulation if real scanning fails
+                self.shimmer_available = False
+        
+        # If no real devices found or shimmer not available, create simulation device
+        if not discovered_devices:
             mock_device = ShimmerDeviceInfo(
                 device_id="shimmer_sim_001",
                 name="Shimmer3 GSR+ (Simulated)",
@@ -186,11 +225,23 @@ class ShimmerManager:
             
             try:
                 if self.shimmer_available:
-                    # TODO: Implement actual Shimmer connection
-                    # connection = shimmer3.ShimmerDevice(device.mac_address)
-                    # connection.connect()
-                    # self.connections[device_id] = connection
-                    pass
+                    if hasattr(self, 'pyshimmer'):
+                        # Use PyShimmer library
+                        connection = self.pyshimmer.ShimmerDevice(device.mac_address)
+                        connection.connect()
+                        # Configure sensors
+                        connection.set_sensors(device.enabled_sensors)
+                        connection.set_sampling_rate(device.sampling_rate)
+                        self.connections[device_id] = connection
+                        
+                    elif hasattr(self, 'shimmer3'):
+                        # Use shimmer3 library
+                        connection = self.shimmer3.ShimmerDevice(device.mac_address)
+                        connection.connect()
+                        # Configure for GSR data
+                        connection.set_sensor_config(['GSR', 'Internal ADC A13'])
+                        connection.set_sampling_rate(device.sampling_rate)
+                        self.connections[device_id] = connection
                 else:
                     # Simulation mode
                     self.connections[device_id] = SimulatedShimmerDevice(device_id)
@@ -228,9 +279,11 @@ class ShimmerManager:
             if device_id in self.connections:
                 try:
                     if self.shimmer_available:
-                        # TODO: Implement actual disconnection
-                        # self.connections[device_id].disconnect()
-                        pass
+                        connection = self.connections[device_id]
+                        if hasattr(connection, 'disconnect'):
+                            connection.disconnect()
+                        elif hasattr(connection, 'stop_streaming'):
+                            connection.stop_streaming()
                     del self.connections[device_id]
                 except Exception as e:
                     self.logger.error(f"Error disconnecting {device_id}: {e}")
@@ -364,20 +417,31 @@ class ShimmerManager:
         self.logger.debug(f"Starting streaming loop for {device_id}")
         
         try:
+            # Start streaming on the device
+            if self.shimmer_available:
+                if hasattr(connection, 'start_streaming'):
+                    connection.start_streaming()
+                elif hasattr(connection, 'start'):
+                    connection.start()
+            
             while self.running and device.is_streaming:
                 try:
                     # Get data from device
+                    data = None
                     if self.shimmer_available:
-                        # TODO: Implement actual data reading
-                        # data = connection.read_data()
-                        data = None
+                        if hasattr(connection, 'read_data'):
+                            data = connection.read_data()
+                        elif hasattr(connection, 'get_next_packet'):
+                            data = connection.get_next_packet()
+                        elif hasattr(connection, 'read'):
+                            data = connection.read()
                     else:
                         # Simulation mode
                         data = connection.read_data()
                     
                     if data:
                         # Convert to our data format
-                        sample = self._convert_data_sample(data)
+                        sample = self._convert_data_sample(data, device_id)
                         
                         # Add to queue
                         if device_id in self.data_queues:
@@ -404,38 +468,96 @@ class ShimmerManager:
                         
                         # Trigger callback
                         self._trigger_callback('data_received', device_id, sample)
-                    
-                    # Control sampling rate
-                    time.sleep(1.0 / device.sampling_rate)
+                    else:
+                        # No data available, control sampling rate
+                        time.sleep(1.0 / device.sampling_rate)
                     
                 except Exception as e:
                     if device.is_streaming:  # Only log if still supposed to be streaming
                         self.logger.error(f"Streaming error for {device_id}: {e}")
                     break
+            
+            # Stop streaming on the device
+            if self.shimmer_available and hasattr(connection, 'stop_streaming'):
+                try:
+                    connection.stop_streaming()
+                except:
+                    pass
         
         except Exception as e:
             self.logger.error(f"Streaming loop error for {device_id}: {e}")
         finally:
             self.logger.debug(f"Streaming loop ended for {device_id}")
     
-    def _convert_data_sample(self, raw_data: Any) -> ShimmerDataSample:
+    def _convert_data_sample(self, raw_data: Any, device_id: str) -> ShimmerDataSample:
         """
         Convert raw device data to ShimmerDataSample.
         
         Args:
             raw_data: Raw data from device
+            device_id: Device identifier for context
             
         Returns:
             ShimmerDataSample: Converted data sample
         """
-        # This would depend on the actual Shimmer data format
-        # For now, assume raw_data is already in the right format
+        timestamp = time.time()
+        
+        # Handle different PyShimmer data formats
+        if self.shimmer_available:
+            if isinstance(raw_data, dict):
+                # Dictionary format (common with PyShimmer)
+                return ShimmerDataSample(
+                    timestamp=raw_data.get('timestamp', timestamp),
+                    gsr=raw_data.get('gsr', raw_data.get('Internal ADC A13')),
+                    ppg=raw_data.get('ppg', raw_data.get('Internal ADC A1')),
+                    accelerometer_x=raw_data.get('acc_x', raw_data.get('Low Noise Accelerometer X')),
+                    accelerometer_y=raw_data.get('acc_y', raw_data.get('Low Noise Accelerometer Y')),
+                    accelerometer_z=raw_data.get('acc_z', raw_data.get('Low Noise Accelerometer Z')),
+                    gyroscope_x=raw_data.get('gyro_x', raw_data.get('Gyroscope X')),
+                    gyroscope_y=raw_data.get('gyro_y', raw_data.get('Gyroscope Y')),
+                    gyroscope_z=raw_data.get('gyro_z', raw_data.get('Gyroscope Z')),
+                    magnetometer_x=raw_data.get('mag_x', raw_data.get('Magnetometer X')),
+                    magnetometer_y=raw_data.get('mag_y', raw_data.get('Magnetometer Y')),
+                    magnetometer_z=raw_data.get('mag_z', raw_data.get('Magnetometer Z'))
+                )
+            elif hasattr(raw_data, '__dict__'):
+                # Object with attributes
+                return ShimmerDataSample(
+                    timestamp=getattr(raw_data, 'timestamp', timestamp),
+                    gsr=getattr(raw_data, 'gsr', None),
+                    ppg=getattr(raw_data, 'ppg', None),
+                    accelerometer_x=getattr(raw_data, 'acc_x', getattr(raw_data, 'accelerometer_x', None)),
+                    accelerometer_y=getattr(raw_data, 'acc_y', getattr(raw_data, 'accelerometer_y', None)),
+                    accelerometer_z=getattr(raw_data, 'acc_z', getattr(raw_data, 'accelerometer_z', None)),
+                    gyroscope_x=getattr(raw_data, 'gyro_x', getattr(raw_data, 'gyroscope_x', None)),
+                    gyroscope_y=getattr(raw_data, 'gyro_y', getattr(raw_data, 'gyroscope_y', None)),
+                    gyroscope_z=getattr(raw_data, 'gyro_z', getattr(raw_data, 'gyroscope_z', None)),
+                    magnetometer_x=getattr(raw_data, 'mag_x', getattr(raw_data, 'magnetometer_x', None)),
+                    magnetometer_y=getattr(raw_data, 'mag_y', getattr(raw_data, 'magnetometer_y', None)),
+                    magnetometer_z=getattr(raw_data, 'mag_z', getattr(raw_data, 'magnetometer_z', None))
+                )
+            elif isinstance(raw_data, (list, tuple)):
+                # Array format - map based on known positions
+                sample_data = {}
+                if len(raw_data) > 0:
+                    sample_data['timestamp'] = raw_data[0] if isinstance(raw_data[0], (int, float)) else timestamp
+                if len(raw_data) > 1:
+                    sample_data['gsr'] = raw_data[1] if isinstance(raw_data[1], (int, float)) else None
+                if len(raw_data) > 2:
+                    sample_data['ppg'] = raw_data[2] if isinstance(raw_data[2], (int, float)) else None
+                # Add more mappings as needed based on actual PyShimmer format
+                
+                return ShimmerDataSample(timestamp=sample_data.get('timestamp', timestamp),
+                                       gsr=sample_data.get('gsr'),
+                                       ppg=sample_data.get('ppg'))
+        
+        # Fallback for simulation mode or unknown formats
         if hasattr(raw_data, 'timestamp'):
             return raw_data
         else:
-            # Create from dictionary or other format
+            # Create from whatever format we have
             return ShimmerDataSample(
-                timestamp=time.time(),
+                timestamp=timestamp,
                 gsr=getattr(raw_data, 'gsr', None),
                 ppg=getattr(raw_data, 'ppg', None),
                 accelerometer_x=getattr(raw_data, 'acc_x', None),
