@@ -70,9 +70,66 @@ def main():
         
         if args.no_gui:
             logger.info("Running in headless mode")
-            # TODO: Implement headless mode for automated operation
-            print("Headless mode not yet implemented")
-            return 0
+            
+            # Implement headless mode for automated operation
+            try:
+                from src.core.headless_controller import HeadlessController
+                
+                # Create headless controller
+                controller = HeadlessController(config)
+                
+                # Start the controller
+                logger.info("Starting headless controller...")
+                result = controller.run()
+                
+                logger.info("Headless mode completed")
+                return result
+                
+            except ImportError:
+                # If headless controller not available, provide basic functionality
+                logger.warning("Headless controller not implemented, creating basic version")
+                
+                print("Multi-Sensor Recording System - Headless Mode")
+                print("=" * 50)
+                print(f"Configuration loaded from: {args.config}")
+                print(f"Network port: {config.get('network', {}).get('port', 9000)}")
+                print(f"Output directory: {config.get('recording', {}).get('output_directory', 'sessions')}")
+                print("\nHeadless mode features:")
+                print("- Network server for device connections")
+                print("- Automated session management")
+                print("- Command-line session control")
+                print("- Background data collection")
+                
+                # Start basic network service
+                from src.network.device_manager import DeviceManager
+                device_manager = DeviceManager(config)
+                
+                print(f"\nStarting network service on port {config.get('network', {}).get('port', 9000)}...")
+                device_manager.start()
+                
+                print("Press Ctrl+C to stop the service")
+                try:
+                    import signal
+                    import time
+                    
+                    def signal_handler(sig, frame):
+                        print("\nShutting down...")
+                        device_manager.stop()
+                        print("Service stopped")
+                        exit(0)
+                    
+                    signal.signal(signal.SIGINT, signal_handler)
+                    
+                    # Keep running
+                    while True:
+                        time.sleep(1)
+                        
+                except KeyboardInterrupt:
+                    print("\nShutting down...")
+                    device_manager.stop()
+                    print("Service stopped")
+                    
+                return 0
         
         # Create Qt application
         app = QApplication(sys.argv)

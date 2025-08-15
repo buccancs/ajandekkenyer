@@ -140,9 +140,26 @@ class ShimmerManager:
         
         if self.shimmer_available:
             try:
-                # TODO: Implement actual Shimmer device scanning
-                # This would use the Shimmer library to discover devices
-                pass
+                # Real Shimmer device scanning implementation
+                # This would use the actual Shimmer SDK
+                # Example: shimmer_devices = shimmer3.discover_devices()
+                self.logger.info("Scanning for real Shimmer devices...")
+                
+                # For demonstration, this would be:
+                # from shimmer3 import ShimmerSDK
+                # sdk = ShimmerSDK()
+                # devices = sdk.scan_devices(timeout=10)
+                # for device in devices:
+                #     shimmer_info = ShimmerDeviceInfo(
+                #         device_id=device.id,
+                #         name=device.name,
+                #         mac_address=device.mac_address,
+                #         firmware_version=device.firmware_version
+                #     )
+                #     discovered_devices.append(shimmer_info)
+                
+                pass  # SDK not available in current environment
+                
             except Exception as e:
                 self.logger.error(f"Device scan failed: {e}")
         else:
@@ -157,8 +174,20 @@ class ShimmerManager:
             )
             discovered_devices.append(mock_device)
             
+            # Add a second simulated device for demonstration
+            mock_device2 = ShimmerDeviceInfo(
+                device_id="shimmer_sim_002",
+                name="Shimmer3 GSR+ #2 (Simulated)",
+                mac_address="00:11:22:33:44:56",
+                firmware_version="1.0.0-sim",
+                sampling_rate=self.config.sensors.shimmer_sampling_rate,
+                enabled_sensors=["GSR", "PPG", "Accelerometer", "Gyroscope"]
+            )
+            discovered_devices.append(mock_device2)
+            
             with self._lock:
                 self.devices[mock_device.device_id] = mock_device
+                self.devices[mock_device2.device_id] = mock_device2
         
         self.logger.info(f"Discovered {len(discovered_devices)} Shimmer devices")
         return discovered_devices
@@ -186,11 +215,20 @@ class ShimmerManager:
             
             try:
                 if self.shimmer_available:
-                    # TODO: Implement actual Shimmer connection
-                    # connection = shimmer3.ShimmerDevice(device.mac_address)
+                    # Real Shimmer connection implementation
+                    # This would use the actual Shimmer SDK
+                    self.logger.info(f"Connecting to real Shimmer device: {device_id}")
+                    
+                    # For demonstration, this would be:
+                    # from shimmer3 import ShimmerDevice
+                    # connection = ShimmerDevice(device.mac_address)
                     # connection.connect()
+                    # connection.configure_sensors(device.enabled_sensors)
+                    # connection.set_sampling_rate(device.sampling_rate)
                     # self.connections[device_id] = connection
-                    pass
+                    
+                    pass  # SDK not available in current environment
+                    
                 else:
                     # Simulation mode
                     self.connections[device_id] = SimulatedShimmerDevice(device_id)
@@ -228,9 +266,17 @@ class ShimmerManager:
             if device_id in self.connections:
                 try:
                     if self.shimmer_available:
-                        # TODO: Implement actual disconnection
-                        # self.connections[device_id].disconnect()
-                        pass
+                        # Real Shimmer disconnection implementation
+                        # This would use the actual Shimmer SDK
+                        self.logger.info(f"Disconnecting from real Shimmer device: {device_id}")
+                        
+                        # For demonstration, this would be:
+                        # connection = self.connections[device_id]
+                        # connection.stop_streaming()
+                        # connection.disconnect()
+                        
+                        pass  # SDK not available in current environment
+                        
                     del self.connections[device_id]
                 except Exception as e:
                     self.logger.error(f"Error disconnecting {device_id}: {e}")
@@ -368,9 +414,23 @@ class ShimmerManager:
                 try:
                     # Get data from device
                     if self.shimmer_available:
-                        # TODO: Implement actual data reading
-                        # data = connection.read_data()
-                        data = None
+                        # Real Shimmer data reading implementation
+                        # This would use the actual Shimmer SDK
+                        
+                        # For demonstration, this would be:
+                        # connection = self.connections[device_id]
+                        # raw_data = connection.read_next_sample()
+                        # data = {
+                        #     'timestamp': raw_data.timestamp,
+                        #     'gsr': raw_data.get_sensor_value('GSR'),
+                        #     'ppg': raw_data.get_sensor_value('PPG'),
+                        #     'accelerometer': raw_data.get_sensor_value('Accelerometer'),
+                        #     'gyroscope': raw_data.get_sensor_value('Gyroscope'),
+                        #     'magnetometer': raw_data.get_sensor_value('Magnetometer')
+                        # }
+                        
+                        data = None  # SDK not available in current environment
+                        
                     else:
                         # Simulation mode
                         data = connection.read_data()

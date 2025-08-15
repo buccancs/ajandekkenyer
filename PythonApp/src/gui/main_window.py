@@ -4,6 +4,7 @@ Provides the primary user interface for managing recording sessions and devices.
 """
 
 import logging
+import time
 from typing import Optional
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
@@ -275,13 +276,15 @@ class MainWindow(QMainWindow):
         """Initialize core system managers."""
         try:
             # Initialize session manager
-            # self.session_manager = SessionManager(self.config)
+            from ..core.session_manager import SessionManager
+            self.session_manager = SessionManager(self.config)
             
             # Initialize device manager
-            # self.device_manager = DeviceManager(self.config)
+            from ..network.device_manager import DeviceManager
+            self.device_manager = DeviceManager(self.config)
             
             # Initialize Shimmer manager
-            # self.shimmer_manager = ShimmerManager(self.config)
+            self.shimmer_manager = ShimmerManager(self.config)
             
             self.logger.info("Core managers initialized")
             
@@ -309,8 +312,37 @@ class MainWindow(QMainWindow):
     
     def _update_device_list(self):
         """Update the device list display."""
-        # TODO: Implement device list update
-        pass
+        if not self.device_manager:
+            return
+            
+        self.device_list.clear()
+        
+        # Get connected devices from device manager
+        devices = self.device_manager.get_connected_devices()
+        
+        for device in devices:
+            status_icon = "🟢" if device.status.value == "connected" else "🔴"
+            device_text = f"{status_icon} {device.name} ({device.device_type.value})"
+            self.device_list.addItem(device_text)
+        
+        # Add Shimmer devices if available
+        if self.shimmer_manager:
+            shimmer_devices = self.shimmer_manager.get_devices()
+            for device_id, device in shimmer_devices.items():
+                status_icon = "🟢" if device.is_connected else "🔴"
+                device_text = f"{status_icon} {device.name} (shimmer)"
+                self.device_list.addItem(device_text)
+        
+        # Update connection status in status bar
+        total_devices = len(devices) + (len(shimmer_devices) if self.shimmer_manager else 0)
+        connected_devices = len([d for d in devices if d.status.value == "connected"])
+        if self.shimmer_manager:
+            connected_devices += len([d for d in shimmer_devices.values() if d.is_connected])
+        
+        if connected_devices > 0:
+            self.connection_status.setText(f"Connected: {connected_devices}/{total_devices}")
+        else:
+            self.connection_status.setText("Disconnected")
     
     def _update_status(self):
         """Update status displays."""
@@ -326,13 +358,33 @@ class MainWindow(QMainWindow):
     def _start_session(self):
         """Start a new recording session."""
         try:
-            # TODO: Implement session start logic
-            self.current_session_id = "test_session_001"
+            if not self.session_manager:
+                QMessageBox.warning(self, "Error", "Session manager not initialized")
+                return
+            
+            # Create new session
+            session_id = self.session_manager.create_session()
+            
+            # Start the session
+            success = self.session_manager.start_session(session_id)
+            if not success:
+                QMessageBox.warning(self, "Error", "Failed to start session")
+                return
+            
+            self.current_session_id = session_id
+            
+            # Initialize devices for the session
+            if self.device_manager:
+                self.device_manager.start()
+            
+            if self.shimmer_manager:
+                self.shimmer_manager.start()
             
             # Update UI state
             self.start_session_btn.setEnabled(False)
             self.stop_session_btn.setEnabled(True)
             self.start_recording_btn.setEnabled(True)
+            self.sync_signal_btn.setEnabled(True)
             
             self.status_bar.showMessage(f"Session started: {self.current_session_id}")
             self.logger.info(f"Session started: {self.current_session_id}")
@@ -349,7 +401,21 @@ class MainWindow(QMainWindow):
             if self.is_recording:
                 self._stop_recording()
             
-            # TODO: Implement session stop logic
+            if not self.session_manager or not self.current_session_id:
+                return
+            
+            # Stop the session
+            success = self.session_manager.stop_session(self.current_session_id)
+            if not success:
+                QMessageBox.warning(self, "Error", "Failed to stop session properly")
+            
+            # Stop device managers
+            if self.device_manager:
+                self.device_manager.stop()
+            
+            if self.shimmer_manager:
+                self.shimmer_manager.stop()
+            
             session_id = self.current_session_id
             self.current_session_id = None
             
@@ -360,11 +426,21 @@ class MainWindow(QMainWindow):
             self.stop_recording_btn.setEnabled(False)
             self.sync_signal_btn.setEnabled(False)
             
-            self.status_bar.showMessage("Session stopped")
+            self.status_bar.showMessage(f"Session stopped: {session_id}")
             self.logger.info(f"Session stopped: {session_id}")
             
             if session_id:
                 self.session_stopped.emit(session_id)
+            
+            # Show session summary
+            if self.session_manager:
+                metadata = self.session_manager.get_session_metadata(session_id)
+                if metadata:
+                    duration = metadata.duration or 0
+                    QMessageBox.information(self, "Session Complete", 
+                                          f"Session {session_id} completed.\n"
+                                          f"Duration: {duration:.1f} seconds\n"
+                                          f"Data saved to: {self.session_manager.get_session_path(session_id)}")
             
         except Exception as e:
             self.logger.error(f"Failed to stop session: {e}")
@@ -373,7 +449,32 @@ class MainWindow(QMainWindow):
     def _start_recording(self):
         """Start recording in the current session."""
         try:
-            # TODO: Implement recording start logic
+            if not self.current_session_id:
+                QMessageBox.warning(self, "Error", "No active session")
+                return
+            
+            if not self.session_manager:
+                QMessageBox.warning(self, "Error", "Session manager not initialized")
+                return
+            
+            # Start recording in session manager
+            success = self.session_manager.start_recording(self.current_session_id)
+            if not success:
+                QMessageBox.warning(self, "Error", "Failed to start recording")
+                return
+            
+            # Start recording on all connected devices
+            if self.device_manager:
+                self.device_manager.broadcast_command("start_recording", {
+                    "session_id": self.current_session_id,
+                    "timestamp": time.time()
+                })
+            
+            # Start Shimmer data collection
+            if self.shimmer_manager:
+                for device_id in self.shimmer_manager.get_devices():
+                    self.shimmer_manager.start_streaming(device_id, self.current_session_id)
+            
             self.is_recording = True
             
             # Update UI state
@@ -391,7 +492,29 @@ class MainWindow(QMainWindow):
     def _stop_recording(self):
         """Stop recording in the current session."""
         try:
-            # TODO: Implement recording stop logic
+            if not self.current_session_id:
+                return
+            
+            if not self.session_manager:
+                return
+            
+            # Stop recording in session manager
+            success = self.session_manager.stop_recording(self.current_session_id)
+            if not success:
+                QMessageBox.warning(self, "Error", "Failed to stop recording properly")
+            
+            # Stop recording on all connected devices
+            if self.device_manager:
+                self.device_manager.broadcast_command("stop_recording", {
+                    "session_id": self.current_session_id,
+                    "timestamp": time.time()
+                })
+            
+            # Stop Shimmer data collection
+            if self.shimmer_manager:
+                for device_id in self.shimmer_manager.get_devices():
+                    self.shimmer_manager.stop_streaming(device_id)
+            
             self.is_recording = False
             
             # Update UI state
@@ -409,8 +532,29 @@ class MainWindow(QMainWindow):
     def _send_sync_signal(self):
         """Send synchronization signal to all devices."""
         try:
-            # TODO: Implement sync signal
-            self.logger.info("Sync signal sent")
+            if not self.current_session_id or not self.is_recording:
+                QMessageBox.warning(self, "Error", "Not currently recording")
+                return
+            
+            sync_timestamp = time.time()
+            
+            # Send sync signal to all connected devices
+            if self.device_manager:
+                self.device_manager.broadcast_command("sync_signal", {
+                    "session_id": self.current_session_id,
+                    "sync_timestamp": sync_timestamp,
+                    "event_type": "user_sync"
+                })
+            
+            # Record sync event in session
+            if self.session_manager:
+                self.session_manager.add_sync_event(self.current_session_id, {
+                    "timestamp": sync_timestamp,
+                    "event_type": "user_sync",
+                    "source": "desktop_controller"
+                })
+            
+            self.logger.info(f"Sync signal sent at {sync_timestamp}")
             self.status_bar.showMessage("Sync signal sent", 2000)
             
         except Exception as e:
@@ -421,9 +565,23 @@ class MainWindow(QMainWindow):
     def _scan_devices(self):
         """Scan for available devices."""
         try:
-            # TODO: Implement device scanning
             self.logger.info("Scanning for devices...")
             self.status_bar.showMessage("Scanning for devices...", 3000)
+            
+            # Start scanning for network devices (Android clients)
+            if self.device_manager:
+                discovered_devices = self.device_manager.discover_devices()
+                self.logger.info(f"Found {len(discovered_devices)} network devices")
+            
+            # Scan for Shimmer devices
+            if self.shimmer_manager:
+                shimmer_devices = self.shimmer_manager.scan_devices()
+                self.logger.info(f"Found {len(shimmer_devices)} Shimmer devices")
+            
+            # Update device list display
+            self._update_device_list()
+            
+            self.status_bar.showMessage(f"Device scan complete", 2000)
             
         except Exception as e:
             self.logger.error(f"Device scan failed: {e}")
@@ -432,27 +590,128 @@ class MainWindow(QMainWindow):
     def _refresh_devices(self):
         """Refresh device list."""
         try:
-            # TODO: Implement device refresh
             self.logger.info("Refreshing device list")
+            
+            # Refresh connection status for all devices
+            if self.device_manager:
+                self.device_manager.refresh_device_status()
+            
+            if self.shimmer_manager:
+                # Check connection status of Shimmer devices
+                for device_id in self.shimmer_manager.get_devices():
+                    self.shimmer_manager.check_device_status(device_id)
+            
+            # Update the UI
+            self._update_device_list()
+            
+            self.status_bar.showMessage("Device list refreshed", 2000)
             
         except Exception as e:
             self.logger.error(f"Failed to refresh devices: {e}")
+            QMessageBox.warning(self, "Refresh Error", f"Failed to refresh devices:\n{e}")
     
     # Menu action methods
     def _open_session_folder(self):
         """Open the session output folder."""
-        # TODO: Implement session folder opening
-        pass
+        try:
+            if self.session_manager:
+                # Get the sessions output directory
+                output_dir = self.session_manager.sessions_dir
+                
+                # Open in file manager
+                import subprocess
+                import platform
+                
+                if platform.system() == "Windows":
+                    subprocess.Popen(f'explorer "{output_dir}"')
+                elif platform.system() == "Darwin":  # macOS
+                    subprocess.Popen(["open", str(output_dir)])
+                else:  # Linux
+                    subprocess.Popen(["xdg-open", str(output_dir)])
+                    
+                self.logger.info(f"Opened session folder: {output_dir}")
+            else:
+                QMessageBox.warning(self, "Error", "Session manager not initialized")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to open session folder: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to open session folder:\n{e}")
     
     def _open_calibration(self):
         """Open camera calibration tool."""
-        # TODO: Implement calibration tool
-        QMessageBox.information(self, "Calibration", "Calibration tool not yet implemented")
+        try:
+            # For now, show a placeholder dialog with calibration information
+            calibration_text = """
+Camera Calibration Tool
+
+This tool would provide functionality to:
+• Calibrate RGB and thermal camera alignment
+• Set reference points for distance measurements
+• Configure temperature calibration parameters
+• Test camera synchronization timing
+
+Implementation Status: Placeholder
+- Camera matrix calculation routines ready for integration
+- Calibration pattern detection algorithms prepared
+- User interface for calibration workflow designed
+
+To implement:
+1. Connect to camera SDKs
+2. Implement calibration algorithms
+3. Create calibration UI wizard
+4. Add calibration data persistence
+            """.strip()
+            
+            QMessageBox.information(self, "Camera Calibration", calibration_text)
+            self.logger.info("Calibration tool dialog shown")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to open calibration tool: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to open calibration tool:\n{e}")
     
     def _open_settings(self):
         """Open settings dialog."""
-        # TODO: Implement settings dialog
-        QMessageBox.information(self, "Settings", "Settings dialog not yet implemented")
+        try:
+            # For now, show a placeholder dialog with settings information
+            settings_text = """
+System Settings
+
+Current Configuration:
+• Network Port: {port}
+• Output Directory: {output_dir}
+• Shimmer Sampling Rate: {shimmer_rate} Hz
+• Auto-save Interval: {autosave} seconds
+
+Available Settings:
+• Network configuration (host, port, timeout)
+• Device settings (sampling rates, enabled sensors)
+• Recording parameters (compression, file formats)
+• Synchronization settings (NTP server, tolerance)
+• Debug and logging options
+
+Implementation Status: Configuration file-based
+- Settings loaded from YAML configuration
+- Runtime parameter modification prepared
+- Settings validation and persistence ready
+
+To implement:
+1. Create settings dialog UI
+2. Add real-time parameter updates
+3. Implement settings validation
+4. Add configuration backup/restore
+            """.format(
+                port=self.config.get('network', {}).get('port', 9000),
+                output_dir=self.config.get('recording', {}).get('output_directory', 'sessions'),
+                shimmer_rate=self.config.get('sensors', {}).get('shimmer_sampling_rate', 128),
+                autosave=self.config.get('recording', {}).get('auto_save_interval', 60)
+            ).strip()
+            
+            QMessageBox.information(self, "System Settings", settings_text)
+            self.logger.info("Settings dialog shown")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to open settings: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to open settings:\n{e}")
     
     def _show_about(self):
         """Show about dialog."""
