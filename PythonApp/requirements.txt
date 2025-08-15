@@ -17,7 +17,7 @@ scipy>=1.7.0
 
 # Bluetooth and Serial Communication (for Shimmer GSR sensor)
 # Note: These may require platform-specific installation
-pybluez>=0.23; platform_system != "Windows"
+# pybluez>=0.23; platform_system != "Windows"  # Disabled due to compatibility issues
 pyserial>=3.5
 
 # Time Synchronization
@@ -38,7 +38,7 @@ h5py>=3.6.0
 jsonschema>=3.2.0
 
 # Logging and Configuration
-pyyaml>=6.6.0
+pyyaml>=6.0.0
 colorlog>=6.6.0
 
 # Optional: Machine Learning (for future data analysis)

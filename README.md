@@ -2,6 +2,28 @@
 
 A comprehensive platform for synchronized physiological data collection, integrating Shimmer3 GSR+ sensors, thermal cameras, and RGB cameras for contactless stress monitoring research.
 
+## Multi-App Project Structure
+
+This project is organized as a **multi-app Gradle project** containing both Android Kotlin and Python desktop applications:
+
+```
+ajandekkenyer/                    # Root project
+├── AndroidApp/                   # Android Kotlin application module
+│   ├── app/                      # Main Android app
+│   │   ├── src/main/kotlin/      # Kotlin source code
+│   │   ├── src/main/res/         # Android resources
+│   │   └── build.gradle.kts      # Android app build configuration
+│   └── build.gradle.kts          # Android module configuration
+├── PythonApp/                    # Python desktop controller module
+│   ├── src/                      # Python source code
+│   ├── main.py                   # Python application entry point
+│   ├── requirements.txt          # Python dependencies
+│   └── build.gradle.kts          # Python tasks configuration
+├── build.gradle.kts              # Root project configuration
+├── settings.gradle.kts           # Multi-module project settings
+└── gradle/                       # Gradle wrapper and configuration
+```
+
 ## System Overview
 
 This system implements a distributed architecture for multi-modal physiological data collection as described in the academic documentation. It consists of:
@@ -41,6 +63,53 @@ This system implements a distributed architecture for multi-modal physiological 
 │  │  Client         │ │ Manager         │ │   Interface   │ │
 │  └─────────────────┘ └─────────────────┘ └───────────────┘ │
 └─────────────────────────────────────────────────────────────┘
+```
+
+## Quick Start
+
+### Build All Applications
+```bash
+# Build both Android and Python applications
+./gradlew buildAll
+
+# Clean all applications
+./gradlew cleanAll
+
+# Run all tests
+./gradlew testAll
+```
+
+### Android Application
+```bash
+# Build Android app
+./gradlew :AndroidApp:app:build
+
+# Install on connected device
+./gradlew :AndroidApp:app:installDebug
+
+# Run Android tests
+./gradlew :AndroidApp:app:test
+```
+
+### Python Desktop Controller
+```bash
+# Install Python dependencies
+./gradlew :PythonApp:installPythonDeps
+
+# Run desktop controller with GUI
+./gradlew runDesktop
+
+# Run in headless mode (command-line only)
+./gradlew runDesktopHeadless
+
+# Run Python tests
+./gradlew :PythonApp:testPython
+
+# Format Python code
+./gradlew :PythonApp:formatPython
+
+# Lint Python code
+./gradlew :PythonApp:lintPython
 ```
 
 ## Features

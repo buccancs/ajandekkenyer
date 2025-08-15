@@ -22,5 +22,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "ajandekkenyer"
 
-// Include AndroidApp as a subproject
+// Multi-app project structure
+// Android Kotlin app
+include(":AndroidApp")
 include(":AndroidApp:app")
+
+// Python desktop controller (managed separately but referenced)
+include(":PythonApp")
