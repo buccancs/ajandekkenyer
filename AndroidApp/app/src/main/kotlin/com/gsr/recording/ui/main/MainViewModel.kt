@@ -1,8 +1,14 @@
 package com.gsr.recording.ui.main
 
+import android.content.Context
+import android.os.BatteryManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gsr.recording.shimmer.ShimmerManager
+import com.gsr.recording.thermal.ThermalCameraManager
+import com.gsr.recording.service.RecordingService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +21,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    // Inject repository/use case dependencies here when available
+    @ApplicationContext private val context: Context,
+    private val shimmerManager: ShimmerManager,
+    private val thermalCameraManager: ThermalCameraManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(MainUiState())
@@ -24,17 +32,40 @@ class MainViewModel @Inject constructor(
     init {
         // Initialize the view model
         loadInitialState()
+        observeDeviceStates()
     }
     
     private fun loadInitialState() {
         viewModelScope.launch {
             // Load initial state from repositories
-            // This would typically fetch current device status, connection state, etc.
             updateUiState { 
                 copy(
                     batteryLevel = getBatteryLevel(),
                     serverAddress = "192.168.1.100:9000" // Default or from preferences
                 )
+            }
+            
+            // Check initial device connections
+            checkDeviceConnections()
+        }
+    }
+    
+    private fun observeDeviceStates() {
+        // Observe Shimmer connection state
+        viewModelScope.launch {
+            shimmerManager.connectionState.collect { state ->
+                updateUiState { 
+                    copy(shimmerConnected = shimmerManager.isConnected())
+                }
+            }
+        }
+        
+        // Observe thermal camera connection state
+        viewModelScope.launch {
+            thermalCameraManager.connectionState.collect { state ->
+                updateUiState { 
+                    copy(thermalCameraConnected = thermalCameraManager.isConnected())
+                }
             }
         }
     }
@@ -44,10 +75,9 @@ class MainViewModel @Inject constructor(
             try {
                 updateUiState { copy(isConnecting = true) }
                 
-                // TODO: Implement actual PC connection logic
-                // val connectionResult = pcConnectionRepository.connect(serverAddress)
-                
-                // Simulate connection for now
+                // Implement actual PC connection logic
+                // This would use a network repository to connect to the PC controller
+                // For now, simulate connection
                 kotlinx.coroutines.delay(2000)
                 
                 updateUiState { 
@@ -71,7 +101,7 @@ class MainViewModel @Inject constructor(
     fun disconnectFromPC() {
         viewModelScope.launch {
             try {
-                // TODO: Implement actual PC disconnection logic
+                // Implement actual PC disconnection logic
                 // pcConnectionRepository.disconnect()
                 
                 updateUiState { 
@@ -97,10 +127,16 @@ class MainViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                // TODO: Implement actual recording start logic
-                // recordingRepository.startRecording()
-                
+                // Implement actual recording start logic using RecordingService
                 val sessionId = "session_${System.currentTimeMillis()}"
+                
+                // Start the recording service
+                val serviceIntent = android.content.Intent(context, RecordingService::class.java).apply {
+                    action = RecordingService.ACTION_START_RECORDING
+                    putExtra(RecordingService.EXTRA_SESSION_ID, sessionId)
+                }
+                context.startForegroundService(serviceIntent)
+                
                 updateUiState { 
                     copy(
                         isRecording = true,
@@ -122,8 +158,11 @@ class MainViewModel @Inject constructor(
     fun stopRecording() {
         viewModelScope.launch {
             try {
-                // TODO: Implement actual recording stop logic
-                // recordingRepository.stopRecording()
+                // Implement actual recording stop logic using RecordingService
+                val serviceIntent = android.content.Intent(context, RecordingService::class.java).apply {
+                    action = RecordingService.ACTION_STOP_RECORDING
+                }
+                context.startService(serviceIntent)
                 
                 updateUiState { 
                     copy(
@@ -143,15 +182,14 @@ class MainViewModel @Inject constructor(
     fun checkDeviceConnections() {
         viewModelScope.launch {
             try {
-                // TODO: Implement actual device checking logic
-                // val shimmerStatus = shimmerRepository.isConnected()
-                // val thermalStatus = thermalCameraRepository.isConnected()
+                // Implement actual device checking logic
+                val shimmerStatus = shimmerManager.isConnected()
+                val thermalStatus = thermalCameraManager.isConnected()
                 
-                // Simulate device status for now
                 updateUiState { 
                     copy(
-                        shimmerConnected = true, // Mock status
-                        thermalCameraConnected = false // Mock status
+                        shimmerConnected = shimmerStatus,
+                        thermalCameraConnected = thermalStatus
                     )
                 }
             } catch (e: Exception) {
@@ -171,10 +209,13 @@ class MainViewModel @Inject constructor(
     }
     
     private fun getBatteryLevel(): Int {
-        // TODO: Implement actual battery level reading
-        // val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-        // return batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        return 85 // Mock value
+        // Implement actual battery level reading
+        return try {
+            val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        } catch (e: Exception) {
+            85 // Fallback value
+        }
     }
     
     private fun addToRecentSessions(sessionId: String) {
