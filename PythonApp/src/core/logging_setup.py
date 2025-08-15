@@ -5,9 +5,17 @@ Logging setup and configuration for the Multi-Sensor Recording System.
 import logging
 import logging.handlers
 import sys
-import colorlog
 from pathlib import Path
 from typing import Optional
+
+# Try to import colorlog, fallback to stub
+try:
+    import colorlog
+except ImportError:
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+    import colorlog_stub as colorlog
 
 
 def setup_logging(
