@@ -1,0 +1,700 @@
+% Appendix Z converted from appendix_z_consolidated_figures.md
+\chapter{Consolidated Figures, Diagrams, and Visual Content}
+
+\textbf{Purpose and Justification}: This appendix consolidates all figures, diagrams, tables, and visual content referenced throughout the Multi-Sensor Recording System thesis. By centralising visual materials, this appendix enables efficient cross-referencing while maintaining narrative flow in the main chapters. The consolidation demonstrates the comprehensive nature of the visual documentation supporting the research while providing a single reference point for all graphical content.
+
+% NOTE: Content preserved via verbatim for speed and fidelity. TODO: Convert key tables to LaTeX tabular and render Mermaid to static images for print in a later pass.
+
+% Rendered Mermaid examples (compiled by LaTeX). See README for build requirements.
+\section*{Rendered Mermaid Diagrams (LaTeX)}
+
+\begin{mermaid}
+flowchart TD
+  A[Researcher] -->|controls| PC[Desktop Controller]
+  PC -->|start/stop| A1[Android Device 1]
+  PC -->|start/stop| A2[Android Device 2]
+  A1 -->|record| Store[(Local Storage)]
+  A2 -->|record| Store
+  PC -->|sync| NTP[NTP Clock]
+\end{mermaid}
+
+\begin{mermaid}
+sequenceDiagram
+  participant R as Researcher
+  participant PC as Controller
+  participant A as Android
+  R->>PC: Start Recording
+  PC->>A: start(timestamp)
+  A-->>PC: ack(started)
+  R->>PC: Stop Recording
+  PC->>A: stop()
+  A-->>PC: files(session.zip)
+\end{mermaid}
+
+\begin{verbatim}
+This appendix provides a unified repository of all visual content for the Multi-Sensor Recording System thesis, organised by category and chapter origin for easy navigation and reference.
+
+\subsection{Z.1 Chapter 2 Figures: Background and Literature Review}
+
+\subsubsection{Z.1.1 Physiological Computing Context}
+
+Figure 2.1: Emotion/Stress Sensing Modality Landscape
+
+```mermaid
+graph TD
+    subgraph "Behavioural Modalities"
+        FACE[Facial Expression Analysis]
+        VOICE[Voice Stress Analysis]
+        GESTURE[Body Language & Gestures]
+        EYE[Eye Tracking & Gaze]
+    end
+
+    subgraph "Physiological Modalities"
+        GSR[Galvanic Skin Response<br/>Contact-based]
+        THERMAL[Thermal Imaging<br/>Contactless]
+        HRV[Heart Rate Variability<br/>Contact/Contactless]
+        EEG[Electroencephalography<br/>Contact-based]
+    end
+
+    subgraph "Hybrid Approaches"
+        MULTIMODAL[Multi-Modal Fusion<br/>RGB + Thermal + GSR]
+        CONTEXTUAL[Contextual Integration<br/>Environment + Behaviour]
+    end
+
+    FACE --> MULTIMODAL
+    THERMAL --> MULTIMODAL
+    GSR --> MULTIMODAL
+    HRV --> CONTEXTUAL
+    VOICE --> CONTEXTUAL
+```
+
+\textit{Figure 2.1: Emotion/Stress Sensing Modality Landscape showing the range of behavioural and physiological modalities available for stress detection research. Demonstrates the positioning of the multi-sensor approach within the broader landscape of affective computing technologies \cite{ref4}.}
+
+Figure 2.2: Contact vs Contactless Measurement Pipelines
+
+```mermaid
+graph LR
+    subgraph "Contact-Based Pipeline"
+        CONTACT_SENSOR[Physical Electrodes<br/>GSR Sensor]
+        CONTACT_SIGNAL[Direct Electrical<br/>Signal Acquisition]
+        CONTACT_PROCESS[Signal Processing<br/>Filtering & Amplification]
+        CONTACT_OUTPUT[GSR Measurement<br/>High Accuracy]
+    end
+
+    subgraph "Contactless Pipeline"
+        CONTACTLESS_SENSOR[Thermal Camera<br/>RGB Camera]
+        CONTACTLESS_SIGNAL[Optical Signal<br/>Extraction]
+        CONTACTLESS_PROCESS[Computer Vision<br/>Feature Extraction]
+        CONTACTLESS_ML[Machine Learning<br/>GSR Prediction]
+        CONTACTLESS_OUTPUT[Predicted GSR<br/>Moderate Accuracy]
+    end
+
+    CONTACT_SENSOR --> CONTACT_SIGNAL
+    CONTACT_SIGNAL --> CONTACT_PROCESS
+    CONTACT_PROCESS --> CONTACT_OUTPUT
+
+    CONTACTLESS_SENSOR --> CONTACTLESS_SIGNAL
+    CONTACTLESS_SIGNAL --> CONTACTLESS_PROCESS
+    CONTACTLESS_PROCESS --> CONTACTLESS_ML
+    CONTACTLESS_ML --> CONTACTLESS_OUTPUT
+
+    CONTACT_OUTPUT -.->|Ground Truth<br/>Training Data| CONTACTLESS_ML
+```
+
+\textit{Figure 2.2: Contact vs Contactless Measurement Pipelines illustrating the trade-offs between accuracy and intrusiveness in physiological monitoring approaches. Shows how contactless methods require machine learning to achieve GSR estimation \cite{ref1}.}
+
+\subsubsection{Z.1.2 Physiological Response Mechanisms}
+
+Figure 2.3: Stress Response Pathways
+
+```mermaid
+graph TD
+    STRESSOR[Acute Stressor<br/>Cognitive Load, Social Stress]
+
+    subgraph "Neural Processing"
+        AMYGDALA[Amygdala<br/>Threat Detection]
+        HYPOTHALAMUS[Hypothalamus<br/>Integration Centre]
+    end
+
+    subgraph "SAM Axis (Rapid Response)"
+        SYMPATHETIC[Sympathetic Nervous System]
+        ADRENAL_MED[Adrenal Medulla]
+        CATECHOLAMINES[Epinephrine/Norepinephrine<br/>2-5 seconds]
+    end
+
+    subgraph "HPA Axis (Sustained Response)"
+        CRH[CRH Release]
+        PITUITARY[Anterior Pituitary]
+        ACTH[ACTH Release]
+        ADRENAL_CORTEX[Adrenal Cortex]
+        CORTISOL[Cortisol Release<br/>15-30 minutes]
+    end
+
+    subgraph "Physiological Outputs"
+        GSR_RESPONSE[GSR Response<br/>1-3 seconds]
+        THERMAL_RESPONSE[Thermal Response<br/>15-30 seconds]
+        CARDIOVASCULAR[Heart Rate Changes<br/>5-10 seconds]
+    end
+
+    STRESSOR --> AMYGDALA
+    AMYGDALA --> HYPOTHALAMUS
+    HYPOTHALAMUS --> SYMPATHETIC
+    HYPOTHALAMUS --> CRH
+
+    SYMPATHETIC --> ADRENAL_MED
+    ADRENAL_MED --> CATECHOLAMINES
+    CATECHOLAMINES --> GSR_RESPONSE
+    CATECHOLAMINES --> CARDIOVASCULAR
+
+    CRH --> PITUITARY
+    PITUITARY --> ACTH
+    ACTH --> ADRENAL_CORTEX
+    ADRENAL_CORTEX --> CORTISOL
+    CORTISOL --> THERMAL_RESPONSE
+```
+
+*Figure 2.3: Stress Response Pathways showing the dual pathway model of
+stress response through SAM (Sympathoadrenal Medullary) and HPA
+(Hypothalamic-Pituitary-Adrenal) axes. Demonstrates the temporal
+characteristics of different physiological responses measured by the
+system \cite{ref1,ref4}.*
+
+Figure 2.4: Sensor Technology Characteristics Matrix
+
+```mermaid
+graph LR
+    subgraph "Accuracy vs Intrusiveness"
+        HIGH_ACC_HIGH_INT[Contact EEG<br/>High Accuracy<br/>High Intrusiveness]
+        HIGH_ACC_LOW_INT[Shimmer GSR<br/>High Accuracy<br/>Medium Intrusiveness]
+        MED_ACC_LOW_INT[Thermal Camera<br/>Medium Accuracy<br/>Low Intrusiveness]
+        LOW_ACC_NO_INT[RGB Camera<br/>Lower Accuracy<br/>No Intrusiveness]
+    end
+
+    HIGH_ACC_HIGH_INT -.->|Research Grade| TARGET[Target Zone<br/>Research Applications]
+    HIGH_ACC_LOW_INT -.->|Reference Standard| TARGET
+    MED_ACC_LOW_INT -.->|Contactless Goal| TARGET
+    LOW_ACC_NO_INT -.->|Mass Deployment| CONSUMER[Consumer Applications]
+```
+
+*Figure 2.4: Sensor Technology Characteristics Matrix illustrating the
+trade-offs between measurement accuracy and user intrusiveness. Shows the
+positioning of different sensor modalities and the research target zone
+cite{ref8,ref16,ref20}.*
+
+\subsubsection{Z.1.4 Multi-Modal Integration Rationale}
+
+Figure 2.5: Multi-Modal Data Fusion Concept
+
+```mermaid
+graph TD
+    subgraph "Data Sources"
+        RGB[RGB Video<br/>30 fps<br/>Facial Features]
+        THERMAL[Thermal Video<br/>25 fps<br/>Temperature Maps]
+        GSR_REF[GSR Reference<br/>128 Hz<br/>Ground Truth]
+    end
+
+    subgraph "Feature Extraction"
+        RGB_FEATURES[RGB Features<br/>- Heart Rate (rPPG)<br/>- Facial Expression<br/>- Motion Patterns]
+        THERMAL_FEATURES[Thermal Features<br/>- Nasal Temperature<br/>- Periorbital Warmth<br/>- Breathing Patterns]
+        GSR_FEATURES[GSR Features<br/>- Response Amplitude<br/>- Recovery Time<br/>- Baseline Level]
+    end
+
+    subgraph "Temporal Alignment"
+        SYNC[Synchronisation Engine<br/>±2.1ms Precision]
+    end
+
+    subgraph "Machine Learning"
+        FUSION[Feature Fusion<br/>Weighted Combination]
+        PREDICTION[GSR Prediction<br/>Contactless Estimation]
+    end
+
+    RGB --> RGB_FEATURES
+    THERMAL --> THERMAL_FEATURES
+    GSR_REF --> GSR_FEATURES
+
+    RGB_FEATURES --> SYNC
+    THERMAL_FEATURES --> SYNC
+    GSR_FEATURES --> SYNC
+
+    SYNC --> FUSION
+    FUSION --> PREDICTION
+
+    GSR_FEATURES -.->|Training<br/>Supervision| FUSION
+```
+
+*Figure 2.5: Multi-Modal Data Fusion Concept showing how RGB video,
+thermal imaging, and reference GSR data are combined through temporal
+synchronisation and feature fusion to enable contactless GSR prediction.
+Demonstrates the system's core research hypothesis cite{ref5,ref6,ref22}.*
+
+\subsection{Z.2 Chapter 3 Figures: Requirements and Architecture}
+
+\subsubsection{Z.2.1 System Requirements Overview}
+
+Figure 3.1: Functional Requirements Hierarchy
+
+```mermaid
+graph TD
+    SYSTEM[Multi-Sensor Recording System]
+
+    subgraph "Primary Functions"
+        RECORDING[FR1: Multi-Modal Recording]
+        SYNC[FR2: Temporal Synchronisation]
+        MANAGEMENT[FR3: Session Management]
+    end
+
+    subgraph "Supporting Functions"
+        DEVICE[FR4: Device Integration]
+        STORAGE[FR5: Data Storage]
+        INTERFACE[FR6: User Interface]
+        CALIBRATION[FR7: Sensor Calibration]
+    end
+
+    subgraph "Quality Assurance"
+        VALIDATION[FR8: Data Validation]
+        RECOVERY[FR9: Error Recovery]
+        EXPORT[FR10: Data Export]
+    end
+
+    SYSTEM --> RECORDING
+    SYSTEM --> SYNC
+    SYSTEM --> MANAGEMENT
+
+    RECORDING --> DEVICE
+    RECORDING --> STORAGE
+    SYNC --> INTERFACE
+    MANAGEMENT --> CALIBRATION
+
+    STORAGE --> VALIDATION
+    INTERFACE --> RECOVERY
+    CALIBRATION --> EXPORT
+```
+
+*Figure 3.1: Functional Requirements Hierarchy showing the organisation
+of system requirements into primary functions, supporting functions, and
+quality assurance measures. Demonstrates the comprehensive scope of the
+system requirements defined in Chapter 3.*
+
+\subsubsection{Z.2.2 Non-Functional Requirements Matrix}
+
+Table 3.1: Non-Functional Requirements Specification
+
+| Requirement Category | Specification | Target Value | Validation Method |
+|---|---|---|---|
+| Performance | | | |
+| Synchronisation Accuracy | Clock offset tolerance | ±5ms | NTP measurement |
+| Data Throughput | Multi-device recording | 45MB/s sustained | Network monitoring |
+| Response Time | UI responsiveness | <200ms | User interaction tests |
+| Reliability | | | |
+| System Uptime | Continuous operation | >99.5% | Extended testing |
+| Data Integrity | Recording completeness | >99.9% | Checksum validation |
+| Error Recovery | Automatic reconnection | <5s recovery time | Fault injection |
+| Usability | | | |
+| Setup Time | Session preparation | <15 minutes | User studies |
+| Learning Curve | Operator training | <2 hours | Competency tests |
+| Error Rate | User mistakes | <1% | Task analysis |
+| Security | | | |
+| Data Encryption | Network communication | TLS 1.2+ | Security audit |
+| Access Control | Authentication required | Token-based | Penetration testing |
+| Privacy Protection | Data anonymisation | GDPR compliance | Ethics review |
+
+*Table 3.1: Non-Functional Requirements Specification providing
+quantitative targets and validation methods for system quality
+attributes. Establishes measurable criteria for system evaluation.*
+
+\subsubsection{Z.2.3 Use Case Scenario Diagrams}
+
+Figure 3.2: Primary Use Case: Multi-Modal Recording Session
+
+```mermaid
+sequenceDiagram
+    participant R as Researcher
+    participant PC as Desktop Controller
+    participant A1 as Android Device 1
+    participant A2 as Android Device 2
+    participant S as Shimmer GSR Sensor
+
+    R->>PC: Create New Session
+    PC->>PC: Generate Session ID
+    PC->>A1: Discover Device
+    PC->>A2: Discover Device
+    A1->>PC: Device Capabilities
+    A2->>PC: Device Capabilities
+
+    R->>PC: Start Recording
+    PC->>A1: Start Command + Timestamp
+    PC->>A2: Start Command + Timestamp
+    PC->>S: Start Streaming
+
+    par Concurrent Recording
+        A1->>A1: Record RGB + Thermal
+        A2->>A2: Record RGB + Thermal
+        S->>PC: Stream GSR Data
+    end
+
+    R->>PC: Stop Recording
+    PC->>A1: Stop Command
+    PC->>A2: Stop Command
+    PC->>S: Stop Streaming
+
+    A1->>PC: Transfer Files
+    A2->>PC: Transfer Files
+    PC->>PC: Validate Data Integrity
+    PC->>R: Session Complete
+```
+
+*Figure 3.2: Primary Use Case sequence diagram for a multi-modal
+recording session showing the interaction between researcher, controller,
+devices, and sensors. Demonstrates the coordinated workflow for
+synchronised data collection.*
+
+\subsection{Z.3 Chapter 4 Figures: Design and Implementation}
+
+\subsubsection{Z.3.1 System Architecture Diagrams}
+
+Figure 4.1: System Architecture Overview
+
+![Figure 4.1: System Architecture Overview](../../diagrams/fig_4_01_system_architecture_overview.png)
+
+*Figure 4.1: System Architecture Overview showing the distributed
+client-server architecture with PC controller coordinating multiple
+Android sensor nodes. Illustrates the star topology with central
+synchronisation and control cite{ref17,ref19,ref21}.*
+
+Figure 4.2: Android Thermal Integration Data Flow
+
+![Figure 4.2: Thermal Integration Flow](../../diagrams/fig_4_02_thermal_integration_flow.png)
+
+*Figure 4.2: Android Thermal Integration Data Flow showing the complete
+pipeline from USB thermal camera through Android processing to CSV
+storage. Details the frame capture callback system and data formatting
+\cite{ref16,ref20}.*
+
+Figure 4.3: Shimmer GSR Integration Architecture
+
+![Figure 4.3: Shimmer GSR Integration](../../diagrams/fig_4_03_shimmer_gsr_integration.png)
+
+*Figure 4.3: Shimmer GSR Integration Architecture illustrating BLE
+communication protocol and real-time data streaming with calibration and
+CSV logging. Shows the complete sensor-to-storage pipeline \cite{ref8,ref15}.*
+
+\subsubsection{Z.3.2 User Interface Design}
+
+Figure 4.4: Desktop Controller GUI Layout
+
+![Figure 4.4: Desktop GUI Layout](../../diagrams/fig_4_04_desktop_gui_layout.png)
+
+*Figure 4.4: Desktop Controller GUI Layout showing the comprehensive
+dashboard with device management, live preview panels, session controls,
+and synchronisation status indicators. Demonstrates the research-grade
+interface design \cite{ref17}.*
+
+\subsubsection{Z.3.3 Communication and Data Processing}
+
+Figure 4.5: Network Protocol Sequence
+
+![Figure 4.5: Protocol Sequence](../../diagrams/fig_4_05_protocol_sequence.png)
+
+*Figure 4.5: Network Protocol Sequence diagram detailing the JSON-based
+communication protocol over WebSocket connections. Shows device
+registration, command distribution, and data synchronisation messaging
+\cite{ref21}.*
+
+Figure 4.6: Data Processing Pipeline
+
+![Figure 4.6: Data Processing Pipeline](../../diagrams/fig_4_06_data_processing_pipeline.png)
+
+*Figure 4.6: Data Processing Pipeline illustrating the complete data flow
+from multi-modal capture through storage, transfer, and export. Shows
+concurrent processing streams and temporal alignment mechanisms \cite{ref22,ref23}.*
+
+\subsection{Z.4 Performance and Diagnostic Analysis}
+
+\subsubsection{Z.4.1 System Reliability and Error Analysis}
+
+Figure G.1: Device Discovery Success Patterns
+
+```mermaid
+graph LR
+    subgraph "Network Conditions"
+        OPTIMAL[5GHz WiFi<br/>Dedicated Channel<br/><3m Range]
+        GOOD[5GHz WiFi<br/>Shared Channel<br/>3-10m Range]
+        POOR[2.4GHz WiFi<br/>Congested<br/>>10m Range]
+    end
+
+    subgraph "Discovery Success Rates"
+        OPTIMAL_RATE[78% First Attempt<br/>94% Within 3 Attempts]
+        GOOD_RATE[65% First Attempt<br/>89% Within 3 Attempts]
+        POOR_RATE[45% First Attempt<br/>78% Within 3 Attempts]
+    end
+
+    OPTIMAL --> OPTIMAL_RATE
+    GOOD --> GOOD_RATE
+    POOR --> POOR_RATE
+```
+
+*Figure G.1: Device Discovery Success Patterns showing the relationship
+between network conditions and device discovery reliability.
+Demonstrates the importance of optimal network configuration for system
+deployment \cite{ref19,ref21}.*
+
+Figure G.2: Error Classification and Frequency
+
+```mermaid
+pie title System Error Distribution (1,679 Test Cases)
+    "UI Threading Issues" : 34
+    "Network Timeouts" : 28
+    "USB Device Issues" : 15
+    "Memory Management" : 12
+    "Sensor Calibration" : 8
+    "Data Corruption" : 3
+```
+
+*Figure G.2: Error Classification and Frequency showing the distribution
+of error types encountered during comprehensive testing. UI threading and
+network issues account for 62% of all system errors, informing
+development priorities.*
+
+Figure G.3: Error Recovery Success Rates
+
+| Error Category | Automatic Recovery | Manual Intervention | Data Loss Risk |
+|---|---|---|---|
+| Network Disconnection | 94% within 2s | 6% require restart | <0.01% |
+| USB Device Failure | 78% within 5s | 22% require reconnection | 0.05% |
+| Memory Issues | 89% via GC | 11% require restart | 0.02% |
+| Sensor Calibration | 95% auto-recal | 5% manual recal | 0% |
+| Threading Issues | 67% automatic | 33% UI restart | 0% |
+
+*Figure G.3: Error Recovery Success Rates demonstrating the system's
+fault tolerance capabilities across different error categories. Shows
+high automatic recovery rates with minimal data loss risk.*
+
+\subsubsection{Z.4.2 Synchronisation Performance}
+
+Figure 3.7: Temporal Synchronisation Accuracy
+
+```mermaid
+graph LR
+    subgraph "Synchronisation Results"
+        TARGET[Target: ±5ms]
+        ACHIEVED[Achieved: ±2.1ms<br/>95th percentile: ±4.2ms]
+        DRIFT[Drift: <0.1ms/minute]
+    end
+
+    subgraph "Performance Factors"
+        NETWORK[Network RTT: 12.3ms avg]
+        NTP[NTP Accuracy: ±1ms]
+        PROCESSING[Processing Delay: 0.8ms]
+    end
+
+    TARGET -.->|Requirement| ACHIEVED
+    NETWORK --> ACHIEVED
+    NTP --> ACHIEVED
+    PROCESSING --> ACHIEVED
+```
+
+*Figure 3.7: Temporal Synchronisation Accuracy showing achieved
+performance versus requirements. The system exceeds synchronisation
+targets by 2.4× margin, ensuring research-grade temporal precision.*
+
+Figure 3.8: Synchronisation Quality vs Network Latency
+
+```mermaid
+graph LR
+    subgraph "Network Quality Impact"
+        LOW_LAT[<20ms RTT<br/>±1.2ms sync error]
+        MED_LAT[20-50ms RTT<br/>±2.1ms sync error]
+        HIGH_LAT[50-100ms RTT<br/>±4.8ms sync error]
+        POOR_LAT[>100ms RTT<br/>±12.3ms sync error]
+    end
+
+    LOW_LAT --> EXCELLENT[Excellent Performance]
+    MED_LAT --> GOOD[Good Performance]
+    HIGH_LAT --> ACCEPTABLE[Acceptable Performance]
+    POOR_LAT --> DEGRADED[Degraded Performance]
+```
+
+*Figure 3.8: Synchronisation Quality vs Network Latency demonstrating
+linear relationship between network performance and synchronisation
+accuracy. Validates the <100ms network requirement specification.*
+
+\subsubsection{Z.4.3 Data Quality and Sensor Performance}
+
+Figure 3.9: GSR Sampling Rate Stability
+
+```mermaid
+graph LR
+    subgraph "Sampling Performance"
+        TARGET_RATE[Target: 128 Hz]
+        ACTUAL_RATE[Actual: 127.98 Hz<br/>±0.12 Hz StdDev]
+        DROPOUT[Sample Loss: <0.1%]
+    end
+
+    subgraph "Quality Metrics"
+        SNR[SNR: 28.3 ± 3.1 dB]
+        BASELINE[Baseline Stability: ±0.008 μS]
+        SENSITIVITY[Event Detection: 94.7%]
+    end
+
+    TARGET_RATE --> ACTUAL_RATE
+    ACTUAL_RATE --> DROPOUT
+    DROPOUT --> SNR
+    SNR --> BASELINE
+    BASELINE --> SENSITIVITY
+```
+
+*Figure 3.9: GSR Sampling Rate Stability showing consistent performance
+at the target 128 Hz with minimal sample loss and high signal quality.
+Demonstrates research-grade data acquisition capabilities \cite{ref8}.*
+
+\subsubsection{Z.4.4 Operational Metrics}
+
+Figure 3.10: Session Workflow Timeline
+
+```mermaid
+gantt
+    title Typical Recording Session Timeline
+    dateFormat X
+    axisFormat %M:%S
+
+    section Setup Phase
+    Power Management          :a1, 0, 2m
+    Network Verification      :a2, after a1, 1m
+    Device Registration       :a3, after a2, 2m
+    Calibration              :a4, after a3, 3m
+
+    section Recording Phase
+    Session Preparation      :b1, after a4, 1m
+    Active Recording         :b2, after b1, 30m
+    Quality Monitoring       :b3, after b1, 30m
+
+    section Completion Phase
+    Stop Coordination        :c1, after b2, 1m
+    Data Transfer           :c2, after c1, 3m
+    Validation              :c3, after c2, 2m
+```
+
+*Figure 3.10: Session Workflow Timeline showing the typical duration and
+sequencing of recording session phases. Total session overhead averages
+15 minutes for 30-minute recording sessions.*
+
+Figure 3.11: System Reliability Timeline
+
+```mermaid
+graph LR
+    subgraph "72-Hour Continuous Operation"
+        HOUR_0[Hour 0<br/>System Start<br/>100% Performance]
+        HOUR_24[Hour 24<br/>Memory: 1.1GB<br/>CPU: 12.8%]
+        HOUR_48[Hour 48<br/>Memory: 1.2GB<br/>CPU: 12.3%]
+        HOUR_72[Hour 72<br/>Memory: 1.2GB<br/>CPU: 12.1%]
+    end
+
+    HOUR_0 --> HOUR_24
+    HOUR_24 --> HOUR_48
+    HOUR_48 --> HOUR_72
+
+    subgraph "Performance Metrics"
+        UPTIME[99.97% Uptime]
+        NO_LEAKS[No Memory Leaks]
+        STABLE_CPU[Stable CPU Usage]
+    end
+
+    HOUR_72 --> UPTIME
+    HOUR_72 --> NO_LEAKS
+    HOUR_72 --> STABLE_CPU
+```
+
+*Figure 3.11: System Reliability Timeline from 72-hour endurance testing
+showing stable resource utilisation and sustained performance.
+Demonstrates production-ready system stability.*
+
+\subsubsection{Z.4.5 Network and Storage Performance}
+
+Figure 3.12: Data Throughput Analysis
+
+```mermaid
+graph TD
+    subgraph "Data Volume Distribution"
+        RGB[RGB Video: 68%<br/>1.56 GB/30min]
+        THERMAL[Thermal Data: 23%<br/>0.53 GB/30min]
+        GSR[GSR CSV: 4%<br/>0.09 GB/30min]
+        LOGS[Sync Logs: 3%<br/>0.08 GB/30min]
+        META[Metadata: 2%<br/>0.04 GB/30min]
+    end
+
+    subgraph "Performance Metrics"
+        WRITE_SPEED[Write Speed: 145 MB/s]
+        TRANSFER_SUCCESS[Transfer Success: 99.2%]
+        RETRY_RATE[Retry Rate: 3.1%]
+    end
+
+    RGB --> WRITE_SPEED
+    THERMAL --> TRANSFER_SUCCESS
+    GSR --> RETRY_RATE
+```
+
+*Figure 3.12: Data Throughput Analysis showing typical session data
+breakdown and storage performance metrics. RGB video dominates storage
+requirements while maintaining high transfer reliability \cite{ref23}.*
+
+\subsection{Z.5 Cross-Reference Tables and Navigation Aids}
+
+\subsubsection{Z.5.1 Figure Cross-Reference Table}
+
+| Figure Number | Title | Original Location | Content Type | Key Topics |
+|---|---|---|---|---|
+| 2.1 | Emotion/Stress Sensing Landscape | Chapter 2.1 | Concept Diagram | Modality comparison |
+| 2.2 | Contact vs Contactless Pipelines | Chapter 2.2 | Process Flow | Measurement approaches |
+| 2.3 | Stress Response Pathways | Chapter 2.3 | Biological Model | Physiological mechanisms |
+| 2.4 | Sensor Technology Matrix | Chapter 2.4 | Comparison Chart | Technology trade-offs |
+| 2.5 | Multi-Modal Fusion Concept | Chapter 2.5 | System Model | Data integration |
+| 3.1 | Functional Requirements | Chapter 3.2 | Hierarchy Diagram | System requirements |
+| 3.2 | Recording Session Use Case | Chapter 3.5 | Sequence Diagram | Operational workflow |
+| 4.1 | System Architecture | Chapter 4.1 | Technical Diagram | System structure |
+| 4.2 | Thermal Integration | Chapter 4.2 | Data Flow | Implementation detail |
+| 4.3 | GSR Integration | Chapter 4.2 | Architecture | Sensor integration |
+| 4.4 | Desktop GUI | Chapter 4.3 | Interface Design | User experience |
+| 4.5 | Protocol Sequence | Chapter 4.4 | Communication | Network protocol |
+| 4.6 | Data Pipeline | Chapter 4.5 | Process Flow | Data management |
+| G.1 | Device Discovery | Appendix G.1 | Performance Chart | Reliability analysis |
+| G.2 | Error Classification | Appendix G.1 | Statistical Chart | Error analysis |
+| G.3 | Error Recovery | Appendix G.1 | Performance Table | Fault tolerance |
+| 3.7 | Sync Accuracy | Appendix G.2 | Performance Chart | Timing precision |
+| 3.8 | Network vs Sync Quality | Appendix G.2 | Correlation Chart | Network impact |
+| 3.9 | GSR Sampling | Appendix G.3 | Quality Metrics | Data quality |
+| 3.10 | Workflow Timeline | Appendix G.4 | Process Chart | Operational efficiency |
+| 3.11 | Reliability Timeline | Appendix G.4 | Endurance Chart | System stability |
+| 3.12 | Throughput Analysis | Appendix G.5 | Performance Chart | Data handling |
+
+\subsubsection{Z.5.2 Table Reference Index}
+
+| Table Number | Title | Content | Location |
+|---|---|---|---|
+| 3.1 | Non-Functional Requirements | Quantitative specifications | Section Z.2.2 |
+| G.3 | Error Recovery Rates | Statistical performance data | Section Z.4.1 |
+
+\subsubsection{Z.5.3 Quick Navigation Guide}
+
+By Chapter:
+- Chapter 2 Figures: Sections Z.1.1 - Z.1.4 (Background concepts)
+- Chapter 3 Figures: Sections Z.2.1 - Z.2.3 (Requirements and architecture)
+- Chapter 4 Figures: Sections Z.3.1 - Z.3.3 (Implementation details)
+
+By Content Type:
+- Concept Diagrams: Figures 2.1, 2.3, 2.5, 3.1
+- Process Flows: Figures 2.2, 4.6, 3.10
+- Technical Architecture: Figures 4.1, 4.2, 4.3, 4.5
+- Performance Analysis: Figures G.1-G.3, 3.7-3.12
+- User Interface: Figure 4.4
+
+By Research Domain:
+- Physiological Computing: Figures 2.1, 2.3, 2.4
+- System Architecture: Figures 3.1, 4.1, 4.5
+- Implementation: Figures 4.2, 4.3, 4.6
+- Validation: Figures G.1-G.3, 3.7-3.12
+
+This consolidated visual content appendix provides comprehensive coverage
+of all figures, diagrams, and tables referenced throughout the thesis,
+enabling efficient navigation and supporting the modular documentation
+approach adopted throughout the project.
+\end{verbatim}

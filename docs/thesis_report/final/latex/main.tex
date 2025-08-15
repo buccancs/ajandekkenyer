@@ -1,0 +1,71 @@
+\documentclass[11pt]{report}
+
+% Packages
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath}
+%\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{siunitx} % provides \micro symbol via siunitx and robust units
+\usepackage[numbers]{natbib} % TODO: Map numeric citations to BibTeX keys
+\usepackage{verbatim} % for verbatim blocks in appendices
+%\usepackage{mermaid}
+\usepackage{booktabs}
+% Mermaid diagrams rendering
+% Note: Requires Node.js and mermaid-cli or mermaid package support; compile with -shell-escape
+% If mermaid.sty is unavailable, skip package to avoid build failure.
+%\IfFileExists{mermaid.sty}{\usepackage{mermaid}}{}
+\usepackage{textcomp}
+
+% Hyperref setup
+\hypersetup{
+    colourlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\begin{document}
+
+% Title Page (placeholder)
+    \begin{titlepage}
+        \centring
+        {\LARGE Multi-Sensor Recording System Thesis\\[1ex]}
+        {\large Build Integration}\\[2ex]
+        {\large Generated on: \today}
+    \end{titlepage}
+
+    \tableofcontents
+    \clearpage
+
+
+    \input{1}
+    \input{2}
+    \input{3}
+    \input{4}
+    \input{5}
+    \input{6}
+% Global bibliography
+    \clearpage
+    \setcitestyle{square}
+    \renewcommand{\bibname}{References}
+    \bibliographystyle{abbrvnat}
+    \bibliography{references}
+
+% Appendices
+    \appendix
+    \clearpage
+    \input{appendix_A}
+    \input{appendix_B}
+    \input{appendix_C}
+    \input{appendix_D}
+    \input{appendix_E}
+    \input{appendix_F}
+    \input{appendix_G}
+    \input{appendix_H}
+    \input{appendix_I}
+    \input{appendix_Z}
+
+\end{document}

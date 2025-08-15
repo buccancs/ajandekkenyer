@@ -1,0 +1,388 @@
+% Appendix A converted from appendix_a_system_manual.md
+\chapter{System Manual — Technical Setup, Configuration, and Maintenance Details}
+
+\textbf{Purpose and Justification}: This System Manual provides the technical foundation necessary for deploying the Multi-Sensor Recording System in research environments. As one of the thesis objectives was to create a practical, deployable system for contactless GSR research, this appendix demonstrates the achievement of that objective by providing comprehensive technical documentation that enables system replication and operational deployment. The manual addresses the practical implementation aspects that are essential for the system's research utility but too detailed for inclusion in the main thesis chapters.
+
+% NOTE: The following content is a faithful conversion of the Markdown body using a verbatim block for code and list fidelity.
+% TODO: Refine lists (itemize/enumerate) and convert [n] references to \cite commands where BibTeX keys are available.
+
+\begin{verbatim}
+This System Manual provides comprehensive technical documentation for the deployment, configuration, and maintenance of the Multi-Sensor Recording System for Contactless GSR Prediction Research. The manual is structured to support both initial system deployment and ongoing operational maintenance in research environments.
+
+\subsection{A.1 System Architecture Overview}
+
+The Multi-Sensor Recording System implements a distributed architecture comprising multiple coordinated components designed to achieve research-grade temporal synchronisation across heterogeneous sensor modalities. The core system architecture consists of:
+
+\textbf{Primary Components:}
+- \textbf{Python Desktop Controller}: Central orchestration service providing master clock synchronisation, device management, and session coordination
+- \textbf{Android Mobile Application}: Distributed sensor nodes supporting RGB camera, thermal imaging, and physiological sensor integration
+- \textbf{SHIMMER3 Gsr+ Sensors}: Bluetooth-enabled physiological measurement devices for ground truth data collection \cite{ref8}
+- \textbf{TOPDON Tc001 Thermal Cameras}: USB-C connected thermal imaging sensors for contactless physiological monitoring
+
+\textbf{Network Architecture:}
+The system employs a hybrid star-mesh topology with the Python Desktop Controller serving as the master coordinator. Communication is implemented using WebSocket over TLS with structured JSON messaging protocol to ensure secure, real-time data exchange and temporal synchronisation \cite{ref21}. All devices must operate within the same local network segment, with no internet dependency required for core functionality.
+
+\textbf{Synchronisation Framework:}
+Temporal coordination is achieved through a custom NTP-based synchronisation engine integrated with the Python controller. The system maintains temporal alignment across all connected devices within ±3.2 ms accuracy, enabling precise multi-modal data correlation essential for contactless GSR prediction research.
+
+\subsection{A.2 Hardware Requirements and Specifications}
+
+\subsubsection{A.2.1 Desktop Controller Requirements}
+
+\textbf{Minimum System Specifications:}
+- \textbf{Operating System}: Windows 10 (build 1903+), macOS 10.15+, or Ubuntu 18.04 LTS+
+- \textbf{Processor}: Intel Core i5-8400 / AMD Ryzen 5 2600 or equivalent (6+ cores recommended)
+- \textbf{Memory}: 8GB RAM minimum (16GB recommended for multi-device sessions)
+- \textbf{Storage}: 500GB available storage (SSD recommended for sustained write performance)
+- \textbf{Network}: Gigabit Ethernet adapter or 802.11ac WiFi capability
+- \textbf{Usb Ports}: USB 3.0+ ports for optional direct sensor connectivity
+
+\textbf{Recommended System Specifications:}
+- \textbf{Processor}: Intel Core i7-10700K / AMD Ryzen 7 3700X or better
+- \textbf{Memory}: 32GB RAM for extended multi-device recording sessions
+- \textbf{Storage}: 2TB NVMe SSD with sustained write speeds >500 MB/s
+- \textbf{Network}: Dedicated Gigabit Ethernet connection for minimal latency
+- \textbf{Graphics}: Discrete GPU for accelerated video processing (optional)
+
+\subsubsection{A.2.2 Android Device Requirements}
+
+\textbf{Hardware Compatibility:}
+- \textbf{Android Version}: API Level 24+ (Android 7.0 Nougat) minimum \cite{ref13}
+- \textbf{Camera}: Camera2 API support with 4K recording capability \cite{ref13}
+- \textbf{Memory}: 6GB RAM minimum (8GB+ recommended)
+- \textbf{Storage}: 128GB internal storage minimum (256GB+ recommended)
+- \textbf{Connectivity}: USB-C with OTG support, Bluetooth 4.0+, 802.11n WiFi \cite{ref14}
+- \textbf{Sensors}: Accelerometer, gyroscope, magnetometer for device orientation
+
+\textbf{Validated Device Models:}
+- Samsung Galaxy S22 (Android 15) - primary target platform
+
+\subsubsection{A.2.3 Sensor Hardware Specifications}
+
+\textbf{SHIMMER3 Gsr+ Sensor:}
+- \textbf{Sampling Rate}: 1-1024 Hz (configurable, 128 Hz default)
+- \textbf{Gsr Range}: 0-4 μS (microsiemens)
+- \textbf{Resolution}: 16-bit ADC
+- \textbf{Battery Life}: 12+ hours continuous operation
+- \textbf{Connectivity}: Bluetooth 2.1+EDR, IEEE 802.15.1 compliant \cite{ref15}
+- \textbf{Data Format}: CSV export with timestamp synchronisation
+
+\textbf{TOPDON Tc001 Thermal Camera:}
+- \textbf{Resolution}: 256×192 thermal array
+- \textbf{Temperature Range}: -20°C to +550°C
+- \textbf{Accuracy}: ±2°C or ±2% of reading
+- \textbf{Frame Rate}: 25 Hz
+- \textbf{Connectivity}: USB-C direct connection \cite{ref20}
+- \textbf{Power}: Bus-powered via USB-C
+
+\subsection{A.3 Software Installation and Environment Setup}
+
+\subsubsection{A.3.1 Python Desktop Controller Installation}
+
+\textbf{Prerequisites Installation:}
+
+\textit{Windows Environment:}
+```bash
+# Install Python 3.8+ from python.org
+# Download and install Visual Studio Build Tools
+# Install Git for Windows
+
+# Verify installation
+python --version  # Should show Python 3.8+
+git --version     # Should show Git 2.30+
+```
+
+\textit{macOS Environment:}
+```bash
+# Install Homebrew if not present
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install dependencies
+brew install python@3.9 git opencv
+
+# Verify installation
+python3 --version
+which git
+```
+
+\textit{Ubuntu/Debian Environment:}
+```bash
+# Update package repositories
+sudo apt update && sudo apt upgrade -y
+
+# Install system dependencies
+sudo apt install -y python3.9 python3-pip python3-venv git
+sudo apt install -y libgl1-mesa-glx libglib2.0-0 libusb-1.0-0-dev
+sudo apt install -y bluetooth libbluetooth-dev
+
+# Verify installation
+python3 --version
+pip3 --version
+```
+
+\textbf{Application Installation:}
+```bash
+# Clone repository with submodules
+git clone --recursive https://github.com/buccancs/bucika_gsr.git
+cd bucika_gsr
+
+# Create Python virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# Install Python dependencies
+pip install -r requirements.txt
+pip install -r PythonApp/requirements.txt
+
+# Install optional dependencies for enhanced functionality
+pip install pyshimmer bluetooth psutil matplotlib scipy \cite{ref18}
+
+# Verify installation
+python PythonApp/system_test.py
+```
+
+\subsubsection{A.3.2 Android Application Installation}
+
+\textbf{Development Environment Setup:}
+```bash
+# Download and install Android Studio Arctic Fox (2020.3.1) or later
+# Configure Android SDK with API Level 24+ support \cite{ref13}
+# Enable Developer Options and USB Debugging on target device
+
+# Build application
+cd AndroidApp
+./gradlew build
+
+# Install on connected device
+./gradlew installDevDebug
+
+# Or install pre-built APK
+adb install app-debug.apk
+```
+
+\textbf{Production Deployment:}
+```bash
+# Build release version
+./gradlew assembleRelease
+
+# Sign APK (production environments)
+jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore release-key.keystore app-release-unsigned.apk alias_name
+
+# Install signed APK
+adb install app-release.apk
+```
+
+\subsection{A.4 System Configuration Procedures}
+
+\subsubsection{A.4.1 Network Configuration}
+
+\textbf{Local Network Setup:}
+1. \textbf{Configure WiFi Access Point}: Ensure all devices connect to the same network segment with sufficient bandwidth (minimum 50 Mbps for multi-device recording)
+2. \textbf{Firewall Configuration}:
+   - Open inbound ports 8080-8089 on the Python controller machine
+   - Allow Python application through Windows Defender/macOS Firewall
+   - Configure router to allow inter-device communication
+3. \textbf{Ip Address Assignment}: Configure static IP addresses or ensure DHCP reservation for consistent device addressing \cite{ref19}
+
+\textbf{Network Quality Validation:}
+```bash
+# Test network connectivity between devices
+ping [ANDROID_DEVICE_IP]
+
+# Measure network latency and bandwidth
+iperf3 -s  # On controller machine
+iperf3 -c [CONTROLLER_IP] -t 30  # On Android device
+
+# Verify port accessibility
+telnet [CONTROLLER_IP] 8080
+```
+
+\subsubsection{A.4.2 Device Pairing and Registration}
+
+\textbf{Android Device Configuration:}
+1. \textbf{Install Application}: Deploy signed APK to target Android devices
+2. \textbf{Grant Permissions}: Camera, microphone, storage, location, and network permissions \cite{ref13}
+3. \textbf{Configure Network Settings}: Set controller IP address and port in application settings
+4. \textbf{Test Connection}: Use built-in connection test to verify communication
+
+\textbf{Shimmer Sensor Pairing:}
+1. \textbf{Power On Sensor}: Ensure battery charge >50% for stable operation
+2. \textbf{Enable Bluetooth Pairing Mode}: Press and hold sensor button until LED blinks blue
+3. \textbf{pair With Controller}: Use Python application's Bluetooth discovery feature \cite{ref14}
+4. \textbf{Validate Connection}: Verify GSR data streaming at configured sample rate
+
+\textbf{Thermal Camera Setup:}
+1. \textbf{CONNECT USB-C Cable}: Use high-quality USB-C OTG cable rated for data transfer \cite{ref16}
+2. \textbf{Install Camera Drivers}: May require manufacturer drivers on Windows systems
+3. \textbf{Configure Permissions}: Grant USB device access to Android application \cite{ref16}
+4. \textbf{Calibrate Camera}: Run thermal calibration routine using black-body reference
+
+\subsubsection{A.4.3 Session Configuration}
+
+\textbf{Recording Parameters:}
+- \textbf{Video Resolution}: 3840×2160 (4K UHD) for research-grade image quality
+- \textbf{Frame Rate}: 30 FPS (configurable 24-60 FPS based on requirements)
+- \textbf{Gsr Sampling Rate}: 128 Hz (configurable 1-1024 Hz)
+- \textbf{Thermal Frame Rate}: 25 Hz (camera hardware limit)
+- \textbf{Session Duration}: Configurable unlimited or time-limited sessions
+
+\textbf{Synchronisation Settings:}
+- \textbf{Master Clock Source}: Python controller system clock with NTP synchronisation
+- \textbf{Sync Tolerance}: ±5 ms maximum temporal drift before recalibration
+- \textbf{Heartbeat Interval}: 10-second status updates between devices
+- \textbf{Reconnection Timeout}: 30-second automatic reconnection for transient failures
+
+\subsection{A.5 Operational Procedures}
+
+\subsubsection{A.5.1 Standard Recording Session Workflow}
+
+\textbf{Pre-Session Setup (15 minutes):}
+1. \textbf{Power Management}: Ensure all devices have >50% battery charge
+2. \textbf{Network Verification}: Confirm all devices connected to local network with stable signal
+3. \textbf{Environment Preparation}: Set up recording environment with appropriate lighting and minimal electromagnetic interference
+4. \textbf{Device Registration}: Launch Python controller and verify all Android devices and sensors are discovered and connected
+5. \textbf{Calibration Verification}: Confirm thermal cameras and GSR sensors are properly calibrated
+
+\textbf{Session Initialisation (5 minutes):}
+1. \textbf{Create Session}: Configure session parameters including participant ID, duration, and enabled sensors
+2. \textbf{Device Status Check}: Verify all devices report "Ready" status with green indicators
+3. \textbf{Synchronisation Validation}: Run synchronisation test to ensure temporal alignment within tolerance
+4. \textbf{Preview Verification}: Confirm preview streams from all cameras are functioning correctly
+5. \textbf{Final Systems Check}: Review session configuration and device health metrics
+
+\textbf{Recording Phase (Variable Duration):}
+1. \textbf{Session Start}: Initiate synchronised recording across all connected devices
+2. \textbf{real-Time Monitoring}: Monitor device status, data quality indicators, and synchronisation metrics
+3. \textbf{Quality Assurance}: Observe data integrity indicators and network performance metrics
+4. \textbf{Intervention Protocols}: Address any warnings or errors using established troubleshooting procedures
+5. \textbf{Session Documentation}: Record any notable events or environmental changes during session
+
+\textbf{Session Completion (10 minutes):}
+1. \textbf{Controlled Stop}: Terminate recording session using coordinated stop command
+2. \textbf{Data Integrity Validation}: Verify all expected data files are present and uncorrupted
+3. \textbf{Metadata Generation}: Ensure session metadata is complete with device information and timestamps
+4. \textbf{Data Transfer}: Initiate file transfer from Android devices to central storage
+5. \textbf{Session Archival}: Archive completed session data with appropriate backup procedures
+
+\subsubsection{A.5.2 Quality Assurance Procedures}
+
+\textbf{real-Time Quality Monitoring:}
+- \textbf{Temporal Synchronisation}: Continuous monitoring of device clock offsets with automatic alerts for drift >±5 ms
+- \textbf{Data Completeness}: Frame drop detection for video streams and sample loss detection for GSR data
+- \textbf{Network Performance}: Bandwidth utilisation and latency monitoring with adaptive quality adjustment
+- \textbf{Device Health}: Battery levels, storage capacity, and thermal status monitoring
+
+\textbf{Post-Session Validation:}
+- \textbf{File Integrity}: MD5 checksum validation for all recorded files
+- \textbf{Temporal Alignment}: Cross-correlation analysis of multi-modal timestamps
+- \textbf{Data Quality Metrics}: Quantitative assessment of signal-to-noise ratio and data completeness
+- \textbf{Metadata Completeness}: Verification of session documentation and device configuration records
+
+\subsection{A.6 Maintenance Procedures}
+
+\subsubsection{A.6.1 Daily Maintenance Tasks}
+
+\textbf{System Health Checks:}
+- Verify network connectivity and bandwidth availability
+- Check battery levels on all Android devices and Shimmer sensors
+- Confirm storage capacity on all recording devices (minimum 20GB free space)
+- Validate thermal camera calibration using reference temperature source
+- Test synchronisation accuracy using built-in diagnostic tools
+
+\textbf{Data Management:}
+- Archive completed sessions to secure storage with redundant backup
+- Clear temporary files and cache from Android devices
+- Verify data backup integrity using automated validation scripts \cite{ref23}
+- Update session metadata database with new recordings
+- Monitor storage usage trends and plan capacity expansion
+
+\subsubsection{A.6.2 Weekly Maintenance Tasks}
+
+\textbf{Software Updates:}
+- Check for and install Python package updates using `pip list --outdated`
+- Update Android application if new versions are available
+- Install operating system security updates on controller machine
+- Update device drivers for thermal cameras and Bluetooth adapters
+- Verify all software components remain compatible after updates
+
+\textbf{Hardware Maintenance:}
+- Clean thermal camera lenses using appropriate optical cleaning materials
+- Inspect USB cables for damage and replace if necessary
+- Charge all Shimmer sensors to full capacity and verify battery health
+- Clean Android device screens and cameras to ensure optimal image quality
+- Check network equipment for proper operation and cooling
+
+\subsubsection{A.6.3 Monthly Maintenance Tasks}
+
+\textbf{Comprehensive System Calibration:}
+- Perform complete thermal camera calibration using certified black-body reference
+- Validate GSR sensor accuracy using known conductance standards
+- Conduct end-to-end synchronisation validation across all device configurations
+- Verify camera calibration parameters using calibrated checkerboard patterns \cite{ref22}
+- Test emergency recovery procedures and backup restoration processes
+
+\textbf{Performance Optimisation:}
+- Analyse system performance logs to identify bottlenecks or degradation trends
+- Optimise network configuration based on usage patterns and performance metrics
+- Clean and defragment storage systems to maintain optimal write performance
+- Review and optimise session configurations based on research requirements
+- Update documentation to reflect any configuration changes or lessons learned
+
+\subsubsection{A.6.4 Annual Maintenance Tasks}
+
+\textbf{System Lifecycle Management:}
+- Comprehensive security audit of all system components and network configurations
+- Hardware lifecycle assessment and replacement planning for aging components
+- Software dependency audit and migration planning for deprecated packages
+- Backup and disaster recovery testing with full system restoration validation
+- Documentation review and updates to reflect current best practices and procedures
+
+\textbf{compliance And Validation:}
+- Validation of data protection and privacy compliance procedures
+- Audit of research data handling and retention policies
+- Review of safety procedures and emergency response protocols
+- Assessment of system capacity and scalability for expanding research requirements
+- Training refresh for all system operators and maintenance personnel
+
+\subsection{A.7 Troubleshooting Reference}
+
+\subsubsection{A.7.1 Common System Issues}
+
+\textbf{Network Connectivity Problems:}
+- \textbf{Symptom}: Android devices cannot connect to Python controller
+- \textbf{Diagnosis}: Verify network connectivity, firewall settings, and port availability
+- \textbf{Resolution}: Check IP configuration, restart network services, validate controller application status
+
+\textbf{Synchronisation Drift Issues:}
+- \textbf{Symptom}: Temporal synchronisation exceeds ±5 ms tolerance
+- \textbf{Diagnosis}: Monitor network latency and system clock stability
+- \textbf{Resolution}: Restart synchronisation service, check NTP configuration, verify network quality
+
+\textbf{Data Quality Degradation:}
+- \textbf{Symptom}: Frame drops, sample loss, or corrupted data files
+- \textbf{Diagnosis}: Monitor system resources, network performance, and storage availability
+- \textbf{Resolution}: Adjust recording parameters, increase system resources, optimise network configuration
+
+\subsubsection{A.7.2 Emergency Procedures}
+
+\textbf{Critical System Failure:}
+1. \textbf{Immediate Response}: Stop all active recording sessions to prevent data corruption
+2. \textbf{System Assessment}: Identify failed components and assess impact on ongoing research
+3. \textbf{Data Recovery}: Attempt recovery of any partially recorded sessions using backup procedures
+4. \textbf{Fallback Configuration}: Deploy backup equipment or reduced-capability configuration if available
+5. \textbf{Incident Documentation}: Record failure details for post-incident analysis and prevention
+
+\textbf{Data Loss Prevention:}
+- Implement automated backup procedures with multiple redundancy levels
+- Maintain real-time data replication for critical research sessions
+- Establish recovery procedures for various failure scenarios
+- Document and regularly test emergency response protocols
+- Maintain emergency contact procedures for technical support
+
+This comprehensive System Manual provides the technical foundation necessary for successful deployment and operation of the Multi-Sensor Recording System in research environments, ensuring reliable data collection for contactless GSR prediction studies while maintaining research-grade quality standards.
+\end{verbatim}

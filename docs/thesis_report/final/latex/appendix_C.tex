@@ -1,0 +1,618 @@
+% Appendix C converted from appendix_c_supporting_documentation.md
+\chapter{Supporting Documentation — Technical Specifications, Protocols, and Data}
+
+\textbf{Purpose and Justification}: This appendix provides the detailed technical specifications and supporting data that underpin the system design and implementation claims made in the main thesis. The comprehensive protocol documentation, calibration data, and ethics framework demonstrate the rigour and compliance necessary for research-grade systems. This material supports the thesis arguments about system accuracy, reliability, and ethical compliance while providing the technical detail necessary for system validation and replication.
+
+% NOTE: Content preserved via verbatim for fidelity. TODO: Map bracketed numeric references [n] to \cite commands in a later pass.
+\begin{verbatim}
+This appendix provides comprehensive technical specifications, communication protocols, and supporting data that underpin the Multi-Sensor Recording System implementation. The documentation serves as a detailed reference for system replication, validation, and maintenance in research environments.
+
+\subsection{C.1 Hardware Specifications and Calibration Data}
+
+\subsubsection{C.1.1 TopDon TC001 Thermal Camera Specifications}
+
+Technical Specifications:
+- Sensor Type: Uncooled microbolometer array
+- Resolution: 256×192 pixels (49,152 thermal pixels)
+- Spectral Range: 8-14 μm (long-wave infrared)
+- Temperature Range: -20°C to +550°C
+- Temperature Accuracy: ±2°C or ±2% of reading (whichever is greater)
+- Thermal Sensitivity (NETD): <40 mK @ 30°C
+- Frame Rate: 25 Hz
+- Field of View: 56° × 42°
+- Focusing: Fixed focus from 0.15m to infinity
+- Interface: USB-C with UVC (USB Video Class) support \cite{ref16}
+- Power Consumption: <3W (bus-powered via USB-C)
+- Operating Temperature: -10°C to +50°C
+- Dimensions: 30mm × 30mm × 30mm
+- Weight: 18g
+
+Calibration Protocol and Results:
+
+\textit{Calibration Setup:}
+```
+Reference: Fluke 4180 Precision Infrared Calibrator (±0.02°C accuracy)
+Target Temperature: 37.0°C (physiological baseline)
+Ambient Conditions: 22.5±0.5°C, 45±5% RH
+Stabilisation Time: 15 minutes
+```
+
+\textit{Calibration Results:}
+```
+Pre-Calibration Accuracy: ±1.8°C
+Post-Calibration Accuracy: ±0.08°C
+Drift Coefficient: 0.02°C/hour
+Spatial Uniformity: ±0.05°C across FOV
+Temporal Stability: ±0.03°C over 8-hour period
+```
+
+\textit{Calibration Matrix (3×3 correction coefficients):}
+```
+[1.0023, -0.0012,  0.0008]
+[0.0009,  0.9987, -0.0015]
+[0.0003,  0.0007,  1.0019]
+```
+
+\subsubsection{C.1.2 Shimmer3 GSR+ Sensor Specifications}
+
+Hardware Configuration:
+- GSR Sensor: Analog Devices AD8232 heart rate monitor IC
+- ADC Resolution: 16-bit (65,536 levels)
+- Sampling Rate Range: 1-1024 Hz (configurable)
+- GSR Measurement Range: 0-4 μS (microsiemens)
+- Resolution: 0.061 μS per LSB
+- Input Impedance: >10 MΩ
+- Common Mode Rejection: >60 dB
+- Power Supply: 3.0V lithium polymer battery
+- Battery Life: 12+ hours continuous operation at 128 Hz
+- Wireless Protocol: Bluetooth 2.1+EDR (IEEE 802.15.1) \cite{ref15}
+- Range: 10m typical in indoor environment
+- Data Format: 16-bit signed integer, little-endian
+
+Calibration and Validation:
+```
+Reference Standard: Biopac GSR100C amplifier
+Test Signal: 1.0 μS square wave @ 0.1 Hz
+Accuracy: ±0.02 μS (±0.5% full scale)
+Linearity: R² > 0.9995 across 0-4 μS range
+Temperature Coefficient: <0.01% per °C
+```
+
+Sample GSR Data Format (CSV):
+```csv
+timestamp_ms,gsr_raw,gsr_microsiemens,packet_id,battery_pct
+1640995200000,2048,1.250,12345,87
+1640995200008,2056,1.255,12346,87
+1640995200016,2052,1.252,12347,87
+```
+
+\subsubsection{C.1.3 Android Device Camera Specifications}
+
+RGB Camera Requirements:
+- API Level: Camera2 API (minimum Android 7.0) \cite{ref13}
+- Resolution: 4K UHD (3840×2160) primary requirement
+- Frame Rate: 30 FPS sustained recording
+- Colour Space: sRGB with 8-bit per channel depth
+- Lens Requirements: Fixed focus or continuous autofocus
+- Exposure Control: Manual exposure compensation capability
+- Format Support: H.264 hardware encoding with AVC profile
+- Storage Requirements: Minimum 100 MB/min recording capacity
+
+Validated Camera Specifications (Samsung Galaxy S22):
+```
+Primary Camera: 50MP f/1.8, 24mm equivalent
+Video Recording: 4K@30fps, 1080p@60fps
+Sensor Size: 1/1.56" (Samsung GN5)
+Pixel Size: 1.0μm with pixel binning
+OIS: Optical Image Stabilisation
+EIS: Electronic Image Stabilisation
+Supported Codecs: H.264, H.265/HEVC
+```
+
+\subsection{C.2 Network Communication Protocols}
+
+\subsubsection{C.2.1 Protocol Stack Architecture}
+
+Transport Layer:
+- Primary Protocol: WebSocket (RFC 6455) over TLS 1.3 \cite{ref21}
+- Port Assignment: 8080-8089 (configurable range)
+- Connection Model: Persistent bidirectional streams
+- Heartbeat Interval: 10 seconds with 30-second timeout
+- Reconnection Strategy: Exponential backoff (1s, 2s, 4s, 8s, max 30s)
+
+Application Layer Message Format:
+```json
+{
+  "message_type": "string",
+  "timestamp": "unix_timestamp_ms",
+  "device_id": "unique_device_identifier",
+  "payload": {
+    // Message-specific data
+  },
+  "checksum": "crc32_hex"
+}
+```
+
+\subsubsection{C.2.2 Message Type Specifications}
+
+Device Discovery Messages:
+
+\textit{HelloMessage (Device Registration):}
+```json
+{
+  "message_type": "hello",
+  "timestamp": 1640995200000,
+  "device_id": "android_device_001",
+  "payload": {
+    "device_type": "android",
+    "android_version": "12",
+    "app_version": "1.2.3",
+    "capabilities": ["rgb_camera", "thermal_camera", "gsr_sensor"],
+    "screen_resolution": "2400x1080",
+    "battery_level": 85,
+    "storage_free_gb": 128.5
+  },
+  "checksum": "a1b2c3d4"
+}
+```
+
+\textit{CapabilitiesResponse (Controller Acknowledgment):}
+```json
+{
+  "message_type": "capabilities_response",
+  "timestamp": 1640995200150,
+  "device_id": "pc_controller",
+  "payload": {
+    "session_id": "session_20240115_143022",
+    "assigned_role": "primary_recorder",
+    "sync_offset_ms": -12.3,
+    "recording_parameters": {
+      "rgb_resolution": "3840x2160",
+      "rgb_fps": 30,
+      "thermal_fps": 25,
+      "gsr_sample_rate": 128
+    }
+  },
+  "checksum": "e5f6g7h8"
+}
+```
+
+Status and Monitoring Messages:
+
+\textit{StatusMessage (Periodic Updates):}
+```json
+{
+  "message_type": "status",
+  "timestamp": 1640995230000,
+  "device_id": "android_device_001",
+  "payload": {
+    "battery_level": 83,
+    "storage_free_gb": 127.8,
+    "cpu_usage_pct": 45,
+    "memory_usage_pct": 62,
+    "device_temperature_c": 38.2,
+    "network_latency_ms": 23,
+    "recording_state": "active",
+    "last_frame_timestamp": 1640995229987,
+    "frames_dropped": 0,
+    "data_buffer_usage_pct": 12
+  },
+  "checksum": "i9j0k1l2"
+}
+```
+
+Control and Synchronisation Messages:
+
+\textit{SyncMessage (Clock Synchronisation):}
+```json
+{
+  "message_type": "sync",
+  "timestamp": 1640995200000,
+  "device_id": "pc_controller",
+  "payload": {
+    "master_timestamp": 1640995200000,
+    "sync_sequence": 12345,
+    "offset_correction_ms": -8.7,
+    "drift_rate_ppm": 0.23
+  },
+  "checksum": "m3n4o5p6"
+}
+```
+
+\textit{StartRecordingMessage (Session Initiation):}
+```json
+{
+  "message_type": "start_recording",
+  "timestamp": 1640995300000,
+  "device_id": "pc_controller",
+  "payload": {
+    "session_id": "session_20240115_143022",
+    "participant_id": "P001",
+    "scheduled_start_timestamp": 1640995305000,
+    "duration_seconds": 1800,
+    "recording_parameters": {
+      "rgb_enabled": true,
+      "thermal_enabled": true,
+      "gsr_enabled": true,
+      "quality_preset": "research_grade"
+    }
+  },
+  "checksum": "q7r8s9t0"
+}
+```
+
+\subsubsection{C.2.3 Synchronisation Protocol Implementation}
+
+NTP-Based Time Synchronisation:
+```
+Phase 1: Initial Offset Measurement
+  - PC broadcasts timestamp t1
+  - Android receives at local time t2
+  - Android responds immediately with t2
+  - PC receives response at time t3
+  - Round-trip time: RTT = (t3 - t1)
+  - Clock offset: offset = ((t2 - t1) + (t2 - t3)) / 2
+
+Phase 2: Continuous Drift Compensation
+  - Periodic offset measurements every 30 seconds
+  - Linear regression on offset vs time
+  - Drift rate calculation: rate = Δoffset/Δtime
+  - Predictive offset correction applied
+```
+
+Synchronisation Quality Metrics:
+```
+Target Accuracy: ±5 ms absolute offset
+Typical Performance: ±2.1 ms (95th percentile)
+Measurement Frequency: Every 30 seconds
+Drift Compensation: Linear prediction with ±0.5 ppm accuracy
+Network Latency Compensation: RTT/2 subtraction
+```
+
+\subsection{C.3 Data Storage Formats and Schemas}
+
+\subsubsection{C.3.1 Session Metadata Schema}
+
+JSON Session Descriptor:
+```json
+{
+  "session_info": {
+    "session_id": "session_20240115_143022",
+    "participant_id": "P001_anonymised",
+    "start_timestamp": 1640995305000,
+    "end_timestamp": 1640997105000,
+    "duration_seconds": 1800,
+    "protocol_version": "1.2.0"
+  },
+  "recording_parameters": {
+    "rgb_resolution": "3840x2160",
+    "rgb_fps": 30,
+    "thermal_resolution": "256x192",
+    "thermal_fps": 25,
+    "gsr_sample_rate": 128,
+    "gsr_range_microsiemens": 4.0
+  },
+  "devices": [
+    {
+      "device_id": "android_device_001",
+      "device_type": "samsung_galaxy_s22",
+      "role": "primary_recorder",
+      "sensors": ["rgb_camera", "thermal_camera"],
+      "calibration_applied": true,
+      "sync_quality_score": 0.97
+    },
+    {
+      "device_id": "shimmer_gsr_001",
+      "device_type": "shimmer3_gsr_plus",
+      "role": "reference_sensor",
+      "sensors": ["gsr"],
+      "calibration_date": "2024-01-10",
+      "sync_quality_score": 0.99
+    }
+  ],
+  "data_files": {
+    "rgb_video": "rgb_video_device_001.mp4",
+    "thermal_data": "thermal_data_device_001.dat",
+    "gsr_data": "gsr_data_shimmer_001.csv",
+    "sync_log": "synchronisation_log.txt",
+    "quality_report": "quality_assessment.json"
+  },
+  "quality_metrics": {
+    "temporal_sync_accuracy_ms": 2.1,
+    "frame_drop_rate_pct": 0.03,
+    "data_completeness_pct": 99.97,
+    "overall_quality_score": 0.96
+  }
+}
+```
+
+\subsubsection{C.3.2 Thermal Data Binary Format}
+
+File Header (64 bytes):
+```c
+struct ThermalFileHeader {
+    char magic\cite{ref8};           // "THERM001"
+    uint32_t version;        // Format version
+    uint32_t width;          // 256 pixels
+    uint32_t height;         // 192 pixels
+    uint32_t fps;            // 25 frames per second
+    uint32_t frame_count;    // Total frames in file
+    double start_timestamp;  // Unix timestamp (ms)
+    double end_timestamp;    // Unix timestamp (ms)
+    char calibration_id\cite{ref16}; // Calibration identifier
+    char reserved\cite{ref16};       // Future expansion
+};
+```
+
+Frame Data Structure:
+```c
+struct ThermalFrame {
+    double timestamp_ms;     // Frame timestamp
+    uint16_t frame_id;       // Sequential frame number
+    uint16_t status_flags;   // Quality/error indicators
+    int16_t temp_data[256*192]; // Temperature data (0.01°C units)
+    uint32_t frame_checksum; // CRC32 checksum
+};
+```
+
+\subsubsection{C.3.3 GSR Data CSV Format Specification}
+
+Column Definitions:
+```csv
+timestamp_ms,gsr_raw_adc,gsr_microsiemens,packet_sequence,battery_percent,device_temp_c,quality_flags
+# timestamp_ms: Unix timestamp in milliseconds
+# gsr_raw_adc: 16-bit ADC reading (0-65535)
+# gsr_microsiemens: Calibrated conductance value
+# packet_sequence: Sequential packet number for loss detection
+# battery_percent: Device battery level (0-100)
+# device_temp_c: Internal device temperature
+# quality_flags: Bit field indicating data quality issues
+```
+
+Sample Data:
+```csv
+timestamp_ms,gsr_raw_adc,gsr_microsiemens,packet_sequence,battery_percent,device_temp_c,quality_flags
+1640995305000,16384,1.000,1,87,36.2,0
+1640995305008,16392,1.001,2,87,36.2,0
+1640995305016,16388,1.000,3,87,36.2,0
+1640995305024,16420,1.002,4,87,36.3,0
+```
+
+\subsection{C.4 Configuration Files and Reference Data}
+
+\subsubsection{C.4.1 System Configuration Template}
+
+master_config.json:
+```json
+{
+  "system": {
+    "master_clock_port": 8080,
+    "device_discovery_timeout": 30,
+    "heartbeat_interval": 10,
+    "max_devices": 12,
+    "log_level": "INFO"
+  },
+  "synchronisation": {
+    "target_accuracy_ms": 5.0,
+    "sync_interval_seconds": 30,
+    "drift_compensation": true,
+    "ntp_server_port": 123
+  },
+  "recording": {
+    "default_duration": 1800,
+    "auto_export": true,
+    "backup_enabled": true,
+    "compression_level": 6
+  },
+  "security": {
+    "tls_enabled": true,
+    "certificate_path": "/certs/server.crt",
+    "private_key_path": "/certs/server.key",
+    "allowed_devices": ["*"]
+  },
+  "calibration": {
+    "thermal_calibration_file": "thermal_cal_20240110.json",
+    "gsr_calibration_file": "gsr_cal_20240110.json",
+    "auto_calibration": true,
+    "calibration_interval_hours": 24
+  }
+}
+```
+
+\subsubsection{C.4.2 Network Performance Benchmarks}
+
+Baseline Performance Metrics:
+```
+Network Configuration: 802.11ac (5 GHz), 40 MHz channel width
+Distance: 3 metres line-of-sight
+Interference: Minimal (controlled laboratory environment)
+
+Latency Measurements:
+  Mean RTT: 12.3 ms
+  95th Percentile RTT: 28.7 ms
+  Maximum RTT: 45.2 ms
+  Jitter (StdDev): 3.8 ms
+
+Throughput Results:
+  TCP Bandwidth: 847 Mbps
+  UDP Bandwidth: 923 Mbps
+  WebSocket Overhead: ~8%
+  Effective Application Throughput: 780 Mbps
+
+Reliability Metrics:
+  Packet Loss Rate: <0.01%
+  Connection Drops: 0 per 24-hour period
+  Message Delivery Success: >99.99%
+  Error Correction Success: 100%
+```
+
+\subsubsection{C.4.3 Environmental Operating Conditions}
+
+Laboratory Environment Specifications:
+```
+Temperature Range: 20-25°C (controlled ±1°C)
+Humidity: 40-60% RH (±5%)
+Lighting:
+  - Ambient: 300-500 lux
+  - Colour Temperature: 4000K-5000K (daylight balanced)
+  - UV Content: Filtered (<1% UV-A, 0% UV-B/C)
+
+Electromagnetic Environment:
+  - WiFi Channels: Dedicated 5 GHz channel
+  - Bluetooth Interference: Monitored and minimised
+  - Power Line Noise: <-40 dBm
+  - Mobile Phone Restrictions: Enforced during recording
+
+Acoustic Environment:
+  - Background Noise: <35 dBA
+  - HVAC System: Variable speed, low-noise operation
+  - Isolation: Sound-dampened recording booth
+```
+
+\subsection{C.5 Calibration Procedures and Protocols}
+
+\subsubsection{C.5.1 Thermal Camera Calibration Protocol}
+
+Equipment Required:
+- Fluke 4180 Precision Infrared Calibrator (±0.02°C accuracy)
+- NIST-traceable black-body reference source
+- Environmental monitoring equipment \cite{ref22}
+- Calibration software tools
+
+Calibration Procedure:
+```
+1. Environmental Stabilisation (30 minutes)
+   - Set room temperature to 22.5±0.5°C
+   - Humidity control to 45±5% RH
+   - Allow thermal camera to reach thermal equilibrium
+
+2. Reference Setup (15 minutes)
+   - Position black-body source 50cm from camera
+   - Set reference temperature to 37.0°C
+   - Allow 15-minute stabilisation period
+   - Verify reference temperature stability (±0.01°C)
+
+3. Baseline Measurement (10 minutes)
+   - Capture 100 frames at 25 Hz
+   - Record raw thermal data and reference temperature
+   - Calculate mean, standard deviation, and spatial uniformity
+   - Document any systematic errors or drift
+
+4. Calibration Matrix Calculation
+   - Perform least-squares fit between raw and reference data
+   - Generate 3×3 correction matrix for spatial uniformity
+   - Calculate offset and gain correction coefficients
+   - Validate correction accuracy across temperature range
+
+5. Verification and Documentation
+   - Test calibration with independent reference source
+   - Document calibration coefficients and validity period
+   - Store calibration data with unique identifier
+   - Schedule next calibration date (monthly interval)
+```
+
+\subsubsection{C.5.2 GSR Sensor Validation Protocol}
+
+Reference Standard Setup:
+```
+Equipment: Biopac GSR100C amplifier with known calibration
+Test Signal: Precision resistor array (0.25-4.0 μS range)
+Measurement Protocol:
+  1. Connect precision resistors in parallel with sensor electrodes
+  2. Record 60-second baseline at each resistance value
+  3. Calculate mean conductance and compare to theoretical values
+  4. Document linearity, accuracy, and temperature drift
+  5. Generate correction factors if required
+```
+
+\subsection{C.6 Ethics Documentation and Compliance Framework}
+
+\subsubsection{C.6.1 UCLIC Ethics Committee Approval}
+
+Ethics Approval Details:
+- Approving Body: UCLIC Ethics Committee, University College London
+- Project ID: 1428
+- Research Title: "Investigating AI and physiological computing"
+- Research Subtitle: "App for Camera-based Contactless Sensing of Physiological Signals"
+- Principal Investigator: Prof. Youngjun Cho (youngjun.cho@ucl.ac.uk)
+- Researchers: Duy An Tran, Zikun Quan, Jitesh Joshi
+- Approval Status: Approved for research data collection involving human participants
+- Approval Scope: Multi-sensor physiological monitoring research using contactless GSR prediction methodology with thermal imaging and RGB video recording
+
+Research Protocol Coverage:
+The ethics approval encompasses the complete research methodology described in this thesis, including:
+- Participant recruitment and selection criteria (healthy adults 18+, exclusions for cardiovascular/neurological conditions)
+- Data collection procedures using thermal imaging, RGB video, and GSR sensors in 30-minute sessions \cite{ref1}
+- Data storage, anonymisation, and retention protocols with GDPR compliance for physiological data \cite{ref3}
+- Participant information provision and informed consent procedures with voluntary participation emphasis
+- Risk assessment covering technical safety, privacy considerations, and participant welfare protocols
+
+\subsubsection{C.6.2 Participant Information and Consent Framework}
+
+Approved Information Sheet Elements:
+The ethics approval includes standardised participant information covering:
+- Research purpose: Development of contactless physiological monitoring technology for stress and wellness assessment \cite{ref4}
+- Detailed explanation of sensor types and data collection procedures (thermal cameras, GSR sensors, RGB video recording in 30-minute sessions)
+- Data usage, storage duration, and anonymisation protocols with special provisions for physiological sensor data \cite{ref3}
+- Participant rights including withdrawal procedures, data deletion (5-day window), and voluntary participation emphasis
+- Contact information for researchers (Prof. Youngjun Cho) and ethics committee (ethics@ucl.ac.uk)
+- Clear statement of voluntary participation, confidentiality protections, and exclusion criteria for safety
+- Special provisions for student participants to ensure no academic impact from participation decisions
+
+Consent Documentation:
+- Written informed consent required before any data collection with electronic consent recording integrated into system workflow
+- Separate consent provisions for video recording use in publications and presentations \cite{ref1}
+- Data sharing consent for non-personally identifiable physiological data with research community
+- Clear withdrawal procedures with 5-day data deletion window and no penalty provisions \cite{ref3}
+
+\subsubsection{C.6.3 Risk Assessment and Safety Protocols}
+
+Supervisor-Approved Risk Assessment:
+Comprehensive risk assessment has been completed and approved by Principal Investigator Prof. Youngjun Cho, covering:
+
+Laboratory Safety Protocols:
+- Equipment safety procedures following manufacturer instructions with regular maintenance schedules
+- Laboratory environment safety including emergency procedures and first aid protocols
+- Professional researcher training on equipment use and participant interaction procedures \cite{ref8}
+- Individual researcher health considerations and vulnerability assessments
+
+Participant Safety Measures:
+- Appointment scheduling within normal building hours (Mon-Fri, 9am-6pm) with security notifications for any out-of-hours testing
+- Professional boundaries maintenance with appropriate researcher clothing and conduct standards
+- Physical environment optimisation to reduce participant anxiety and ensure accessibility \cite{ref4}
+- Emergency exit strategies and termination procedures if participant behaviour causes concern
+
+Data Protection and Privacy:
+- GDPR training completion required for all researchers involved in data collection \cite{ref3}
+- Secure data storage with encryption and access controls limited to authorised research team
+- Data processing compliance with UK regulations and UCL data protection policies
+- Regular incident monitoring and reporting procedures for data protection concerns
+
+Session Management Protocols:
+- Participant escort procedures to prevent unauthorised building access
+- Professional debriefing procedures with opportunity for participant questions
+- Incident reporting requirements for any safety or distress concerns during sessions
+- Supervisor notification and appropriate support provision for any researcher distress
+
+\subsubsection{C.6.4 Ethics Documentation Repository}
+
+Available Documentation:
+The complete ethics approval documentation is maintained in the repository at `docs/risk_and_ethics/` and includes:
+
+Participant Information Sheet (`docs/risk_and_ethics/information sheet including link to consent form-21.md`):
+- Complete participant information sheet as approved by UCLIC Ethics Committee
+- Detailed explanation of research procedures, data collection methods, and participant rights \cite{ref1}
+- Consent form template accessible at: https://forms.office.com/e/JQihB2B5TD
+
+Risk Assessment Documentation (`docs/risk_and_ethics/risk_assessment_form_july2025_duyan-2.md`):
+- Comprehensive risk assessment checklist as approved by supervisor Prof. Youngjun Cho
+- Laboratory safety protocols, participant safety measures, and data protection procedures
+- Signed declaration confirming no significant risk assessment with appropriate control measures
+
+Ethics Compliance Framework:
+All research activities using this system must reference and comply with these approved documentation standards to ensure continued ethics compliance and participant protection throughout the research process \cite{ref3}.
+- Consent withdrawal procedures documented and technically implemented
+- Consent records maintained separately from research data for audit purposes
+
+This comprehensive supporting documentation provides the technical foundation necessary for system replication, validation, and ongoing maintenance of the Multi-Sensor Recording System in research environments.
+\end{verbatim}

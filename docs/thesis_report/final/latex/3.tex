@@ -1,0 +1,204 @@
+\chapter{Requirements and Analysis}
+
+The system supports contactless Galvanic Skin Response (GSR) prediction research. Traditional GSR measurement uses contact sensors; this project integrates contact-based and contact-free monitoring. Researchers can collect synchronised multi-modal data by combining wearable GSR readings with contactless signals like thermal imagery and video. This data aids in developing models to predict GSR without direct skin contact. The system addresses a key research gap by supplying reliable ground-truth GSR data alongside synchronised contactless sensor inputs for analysis \cite{ref1}.
+
+In physiological and affective computing research, the focus is on stress and emotion analysis, with GSR as a common measure of sympathetic nervous system activity. The system integrates thermal cameras, RGB video, and inertial sensors with GSR to create a dataset exploring correlations between observable signals (e.g., facial thermal patterns, motion) and skin conductance changes. This multi-sensor platform operates in real-world settings (labs or field studies), emphasising temporal precision and data integrity, capturing subtle physiological responses for alignment in machine learning \cite{ref1}. Overall, the system aims to enable experiments that record a participant's physiological responses alongside visual and thermal cues, establishing a foundation for contactless stress detection.
+
+The system's requirements were developed through an iterative, research-driven approach \cite{ref12}. High-level objectives (e.g. ``enable synchronised GSR and video recording'') were identified based on research goals. These were refined through requirements elicitation, considering researchers' needs and hardware constraints. A prototyping methodology was adopted: early system versions were built, tested, and feedback was incorporated to update the requirements. For instance, additional requirements like data encryption and device fault tolerance emerged during development and were added.
+
+Requirements engineering followed IEEE guidelines \cite{ref11}. Each requirement was documented with a unique ID and categorised as functional or non-functional. Implementation matched requirements; the repository structure and commit messages confirmed that each capability (e.g., calibration module, time synchronisation service) aligned with a defined requirement. Traceability was maintained through the matrix in Section~\ref{sec:system-analysis}. The approach was incremental and user-focused, starting with core research use cases and refining system requirements as insights arose during development.
+
+
+\section{Functional Requirements Overview}
+The system's functional requirements (FR\#) are detailed below. Each requirement specifies the expected actions of the system. These were derived from implemented capabilities and confirmed through the source code:
+
+\begin{itemize}
+    \item FR1: Multi-Device Sensor Integration -- The system shall support the connection and management of multiple sensor devices simultaneously. This includes discovering and pairing Shimmer GSR sensors via direct Bluetooth or through an Android device acting as a bridge. If no real sensors are available, the system shall offer a simulation mode to generate dummy sensor data for testing (see Appendix F.3 for implementation details).
+
+    \item FR2: Synchronised Multi-Modal Recording -- The system shall start and stop data recording synchronously across all connected devices. When a session starts, the PC instructs each Android device to begin recording GSR data, video (using the RGB camera), and thermal imaging simultaneously. At the same time, the PC starts logging data from any directly connected Shimmer sensors. All streams share a common session timestamp, enabling later alignment.
+
+    \item FR3: Time Synchronisation Service -- The system shall synchronise clocks across devices to ensure all data is time-aligned. The PC runs a time synchronisation service (e.g. an NTP-like server on the local network) so that each Android device can calibrate its clock to the PC's clock before and during recording. This achieves a sub-millisecond timestamp accuracy between GSR readings and video frames, which is crucial for data integrity.
+
+    \item FR4: Session Management -- The system shall organise recordings into sessions, each with a unique ID or name. It shall allow the researcher to create a new session (automatically timestamped) and later terminate the session when finished. Upon session start, the PC creates a directory for data storage and initialises a session metadata file. When the session ends, the metadata (start/end time, duration, status) is finalised and saved. Only one session can be active at a time, preventing overlap.
+
+    \item FR5: Data Recording and Storage -- For each session, the system shall record: (a) Physiological sensor data from the Shimmer GSR module (including GSR and any other channels such as PPG or accelerometer, sampled at 128 Hz), and (b) video and thermal data from each Android device (with at least 1920$\times$1080 video at 30 FPS). Sensor readings stream to the PC in real-time and are written to local CSV files as they arrive, avoiding data loss. Each Android device stores its raw video/thermal files locally during recording and transfers them to the PC after the session (see FR10). The system shall also handle audio recording if enabled (e.g. microphone audio at 44.1 kHz), keeping it synchronised with the other streams.
+
+    \item FR6: User Interface for Monitoring \& Control -- The system shall provide a GUI on the PC for the researcher to control sessions and monitor devices. This interface should list connected devices and their status (e.g., battery level, streaming/recording state), allow the user to start/stop sessions, and display indicators such as recording timers and sample counts. The GUI should also show preview feeds or periodic status updates (for example, updating every few seconds with the number of samples received). If a device disconnects or encounters an error, the UI should highlight that device so the researcher can take appropriate action.
+
+    \item FR7: Device Synchronisation and Signals -- The system shall coordinate multiple devices by sending control commands and synchronisation cues. For example, the PC can broadcast a synchronisation signal (such as a screen flash or buzzer) to all Android devices to mark the same moment across all video recordings. These signals (e.g., a visual flash on each device's screen) help align footage during analysis. The system utilises a JSON-based command protocol, allowing the PC to instruct all devices to start/stop recording and perform other actions in unison.
+
+    \item FR8: Fault Tolerance and Recovery -- If a device (Android or sensor) disconnects or fails during a session, the system shall detect the issue and continue the session with the remaining devices. The PC will log a warning and mark that device as offline. When the device reconnects, it should seamlessly rejoin the ongoing session. The system will attempt to recover the device's session state by resynchronizing and executing any queued commands while it was offline. This ensures a temporary network drop does not invalidate the entire session.
+
+    \item FR9: Calibration Utilities -- The system shall include tools for calibrating sensors and cameras. In particular, it provides a procedure to align the thermal camera's field of view with that of the RGB camera (e.g., using a checkerboard pattern). The researcher can perform a calibration session where images are captured and calibration parameters are computed. Calibration settings (such as pattern type, pattern size, and number of images) are adjustable in the system configuration. The resulting calibration data is saved so that recorded thermal and visual data can be accurately merged during analysis. (This requirement is derived from the presence of a calibration module in the code.)
+
+    \item FR10: Data Transfer and Aggregation -- Once a session is stopped, the system shall transfer all recorded data from each Android device to the PC. The Android application packages the session's files (e.g. video, thermal images, local sensor logs) and sends them to the PC over the network. The PC saves each incoming file in the session folder and updates the session metadata with that file's entry (including file type and size). This automation ensures the researcher can retrieve all data without manually offloading devices. If any file fails to transfer, the system logs an error and (if possible) retries, so that data is not lost.
+\end{itemize}
+
+\section{Non-Functional Requirements}
+In addition to core functionality, the system must fulfil several non-functional requirements for research suitability. These include:
+
+\begin{itemize}
+    \item NFR1: Performance (Real-Time Data Handling) -- The system must handle data in real time, with minimal latency and sufficient throughput. It should support at least 128 Hz sensor sampling and 30 FPS video recording concurrently without data loss or buffering issues. The design uses multi-threading and asynchronous processing to achieve this. Video is recorded at $\sim$5 Mbps and audio at 128 kbps, which the system writes to storage in real time. Even with multiple devices (e.g. 3+ cameras and a GSR sensor), the system should not drop frames or samples due to performance bottlenecks.
+
+    \item NFR2: Temporal Accuracy -- Clock synchronisation accuracy between devices should be on the order of milliseconds or better. The system's built-in NTP time server and sync protocol aim to keep timestamp differences very low (e.g. $<5$ ms offset and jitter as logged after synchronisation). This is critical for valid sensor fusion; therefore, the system continuously synchronises all device clocks during a session. Timestamp precision is maintained in all logs (to the millisecond), and all devices use the PC's clock as the reference.
+
+    \item NFR3: Reliability and Fault Tolerance -- The system must be robust to interruptions. If a sensor or network link fails, the rest of the system continues recording unaffected (as per FR8). Data already recorded should be safely preserved even if a session ends unexpectedly (e.g. the PC application crashes). The session design ensures that files are written incrementally and closed properly on stop, to avoid corruption. A recovery mechanism is in place to handle device reconnections (queuing messages while a device is offline). In addition, the Shimmer device interface includes an auto-reconnect feature to attempt to re-establish Bluetooth connections automatically.
+
+    \item NFR4: Data Integrity and Validation -- All recorded data should be accurate and free from corruption. The system has a data validation mode for sensor data that checks incoming values are within expected ranges (for example, verifying GSR readings stay between 0.0 and 100.0 $\mu$S). Each file transfer from devices is verified for completeness (expected file sizes are known and logged in metadata). Session metadata serves as a manifest, allowing for the easy detection of missing or inconsistent files. Additionally, the system will not overwrite existing session data; each session is stored in a unique, timestamped folder to prevent conflicts.
+
+    \item NFR5: Security -- The system must safeguard the security and privacy of the recorded data. All network communication between the PC and the Android devices is encrypted (TLS is enabled in the configuration). The system requires authentication tokens for device connections (with a configurable minimum length of 32 characters) to prevent unauthorised devices from joining the session. Security checks at startup will warn if encryption or authentication is not configured correctly. All recorded data files are stored locally on the PC; if cloud or external transfer is needed, it is performed only by the researcher (there is no inadvertent data upload). Additionally, the system checks file permissions and the runtime environment on startup to avoid insecure defaults.
+
+    \item NFR6: Usability -- The system should be easy to use for researchers who are not software experts. The PC's graphical interface is designed to be intuitive, featuring precise controls for starting and stopping sessions, as well as indicators for system status. For example, the UI displays a recording indicator when a session is active and shows device statuses (connected/disconnected, recording, and battery level) in real-time. Sensible default settings (e.g. a default dark theme and window size) ensure a good user experience out of the box. The Android app requires minimal user interaction after initial setup \textemdash typically the researcher needs to mount the devices and tap ``Connect'', with the PC orchestrating the rest. User manuals or on-screen guidance are provided for tasks like calibration.
+
+    \item NFR7: Scalability -- The system's architecture should scale to accommodate multiple devices and long recording durations. It has been tested with up to \emph{8} Android devices streaming or recording concurrently (the configuration allows up to 10 connections). Similarly, the system supports sessions up to at least \emph{120 minutes} in duration by default. To manage large video files, recordings can be chunked into $\sim$1 GB segments automatically so that individual file sizes remain manageable. This ensures that even high-resolution, extended sessions do not overwhelm the file system or hinder post-processing.
+
+    \item NFR8: Maintainability and Modularity -- The system is built in a modular way to simplify maintenance. Components are separated (e.g., Calibration Manager, Session Manager, Shimmer Manager, Network Server) and communicate via clear interfaces. This modular design (evident in the repository structure) makes it easier to update one part (such as swapping out the thermal camera SDK) without affecting others. Configuration is externalised (through \texttt{config.json} and other settings), so that changes in requirements (e.g., adding new sensor types or changing sampling rates) can be accommodated by editing configuration rather than modifying code. Finally, the project includes test scripts and extensive logging to aid in debugging, which contributes to maintainability.
+\end{itemize}
+
+Non-functional requirements were validated via system testing and configuration reviews. TLS settings and runtime security checks confirm security needs, while the multi-threaded design and resource limits in the config file demonstrate performance requirements are met.
+
+
+\section{Use Case Scenarios}
+This section demonstrates the system's intended use through several \textbf{use case scenarios}. Each scenario describes the typical interaction between the \textbf{user (researcher)} and the system, showing how components work together to meet requirements.
+
+\subsection{Use Case 1: Conducting a Multi-Modal Recording Session}
+\textbf{Description:} A researcher records GSR data, video, and thermal streams from multiple devices during a live experiment with a participant. This is the system's main use.
+
+\textbf{Primary Actor:} Researcher.
+
+\textbf{Secondary Actors:} The participant does not interact directly with the system UI.
+
+\textbf{Preconditions:}
+\begin{itemize}
+    \item The Shimmer GSR sensor is charged and either connected to the PC (via Bluetooth dongle) or paired with an Android device.
+    \item Android recording devices are powered on, running the recording app, and on the same network as the PC. The PC application is running and all devices have synchronised their clocks (either via initial NTP sync or prior calibration).
+    \item The researcher has configured any necessary settings (e.g. chosen a session name, verified camera focus, etc.).
+\end{itemize}
+
+\textbf{Main Flow:}
+\begin{itemize}
+    \item The Researcher opens the PC control interface and creates a new session (providing a session name or accepting a default). The system validates the name and creates a session folder and metadata file on disk. The session is now ``active'' but not recording yet.
+    \item The Researcher selects the devices to use. For example, they ensure the Shimmer sensor appears in the device list and one or more Android devices show as ``connected'' in the UI. If the Shimmer is not yet connected, the Researcher clicks ``Scan for Devices.'' The system performs a scan, finding the Shimmer sensor either directly via Bluetooth or through an Android's paired devices. The Researcher then clicks ``Connect'' for the Shimmer. The system establishes a connection (or uses a simulated device if the real sensor is unavailable) and updates the UI status to ``Connected.''
+    \item The Researcher checks that video previews from each Android (if available) are showing in the UI (small preview panels) and that the GSR signal is streaming (e.g. a live plot or at least a sample counter incrementing). Internally, the PC has initiated a background thread that continuously receives data from the Shimmer sensor. The system also maintains a heartbeat to each Android (pinging every few seconds) to ensure connectivity.
+    \item The Researcher initiates recording by clicking ``Start Recording.'' The PC sends a start command to all connected Android devices (with a session ID). Each Android begins recording its camera (and thermal sensor, if present) and optionally starts streaming its own sensor data (if any) back to PC. Simultaneously, the PC instructs the Shimmer Manager to start logging data to a file. This is done nearly simultaneously for all devices. The PC's session manager marks the session status as ``recording'' and timestamps the start time.
+    \item During the recording, the Researcher can observe the real-time status. For example, the UI might display the elapsed time, the number of data samples received so far, and the count of connected devices. Every 30 seconds, the system logs a status summary (e.g., ``Status: 1 Android, 1 Shimmer, 3000 samples''). If the Researcher has a specific event to mark, they can trigger a sync signal: for instance, pressing a ``Flash Sync'' button. When prompted, the system calls \texttt{send\_sync\_signal} to all Android devices to flash their screen LEDs (creating a visible marker in the videos) and logs the event in the GSR data stream.
+    \item If any device disconnects mid-session (e.g. an Android phone's WiFi drops out), the system warns the Researcher via the UI (perhaps highlighting that device in red). The recording on that device might continue offline (the Android app will still save its local video). The PC's Session Synchroniser marks the device as offline and queues any commands for it. The Researcher can continue the session if the other streams are still running. When the disconnected device comes back online (e.g. WiFi reconnects), the system automatically detects it, re-synchronises the session state, and executes any missed commands (all in the background). This recovery happens without user intervention, ensuring the session can proceed.
+    \item The Researcher decides to end the recording after, say, 15 minutes. They click ``Stop Recording'' on the PC interface. The PC sends stop commands to all Androids, which then cease recording their cameras. The Shimmer Manager stops logging GSR data simultaneously. Each component flushes and closes its output files. The session manager marks the session as completed, calculates the duration, and updates the session metadata (end time, duration, and status). A log message confirms the session has ended, along with its duration and sample count stats.
+    \item After stopping, the system automatically initiates data transfer from the Android devices. The File Transfer Manager on each Android package the recorded files (e.g., \texttt{video\_20250807\_...mp4}, thermal data, etc.) and begins sending them to the PC, one file at a time. The PC receives each file (via its network server) and saves it into the session folder, simultaneously calling \texttt{SessionManager.add\_file\_to\_session()} to record the file's name and size in the metadata. A progress indicator may be shown to the Researcher.
+    \item Once all files are transferred, the system notifies the Researcher that the session data collection is complete (e.g., ``Session 15min\_stress\_test completed -- 5 files saved''). The Researcher can then optionally review summary statistics (the UI might show, for example, average GSR level, or simply confirm the number of files and total data size). The session is now closed, and all resources have been cleaned up.
+\end{itemize}
+
+\textbf{Postconditions:} All data (GSR CSV, video files, etc.) are securely stored in the session directory. The session metadata JSON lists all devices and files. The system remains active for the researcher to initiate a new session if needed. The participant's involvement is complete, and the data is ready for analysis. If any device fails to transfer data, the researcher will be notified for manual retrieval.
+
+\textbf{Alternate Flows:}
+\begin{itemize}
+    \item \emph{No Shimmer available:} If the Shimmer sensor is not connected or malfunctions, the Researcher can still run a session with just video/thermal. The system will log that no GSR device is present, and it can operate in a video-only mode (possibly using a simulated GSR signal for demonstration).
+    \item \emph{Calibration needed:} If this is the first session or devices have been rearranged, the Researcher might perform a calibration routine before starting. In that case, they would use the Calibration Utility (see Use Case 2) to calibrate cameras. Once calibration is done and saved, the recording session proceeds as normal.
+    \item \emph{Device battery low:} During recording, if an Android's battery is critically low, the system could alert the Researcher (since the device status includes battery level). The Researcher might decide to stop the session early or replace the device. The system will include the battery status in metadata for transparency.
+    \item \emph{Network loss at end:} If the network connection to a device is lost exactly when ``Stop'' is pressed, the PC might not immediately receive confirmation from that device. In this case, the PC will mark the device as offline and proceed to finalise the session with whatever data it has. Later, when the device reconnects, the Session Synchroniser can still trigger the file transfer for that device's data, so it is eventually saved on the PC.
+\end{itemize}
+
+\subsection{Use Case 2: Camera Calibration for Thermal Alignment}
+\textbf{Description:} Before recording with a thermal camera, the researcher calibrates it using the RGB camera. This allows for pixel-to-pixel comparison of data from both modalities.
+
+\textbf{Primary Actor:} Researcher.
+
+\textbf{Preconditions:} At least one Android device with an RGB and thermal camera (or an external thermal camera) is available. A printed calibration pattern (e.g. checkerboard) is prepared. The system's calibration settings (e.g. pattern size) are configured correctly.
+
+\textbf{Main Flow:}
+\begin{itemize}
+    \item The Researcher opens the \textbf{Calibration Tool} in the PC application (or on the Android app, depending on implementation \textemdash assume PC-side coordination). They select the device(s) to calibrate (e.g., ``Device A -- RGB + Thermal'').
+    \item The system instructs the device to enter calibration mode. Typically, the Android app might open a special calibration capture activity (with perhaps an overlay or just using both cameras). The Researcher holds the checkerboard pattern in front of the cameras and ensures it is visible to both the RGB and thermal cameras.
+    \item The Researcher initiates capture (maybe pressing a ``Capture Image'' button). The device (or PC via the device) captures a pair of images -- one from the RGB camera and one from the thermal camera -- at the same moment. It may require multiple images from different angles; the configuration might specify capturing, for example, 10 images. The system provides feedback after each capture (e.g., "Image 1/10 captured").
+    \item After the required number of calibration images are collected, the Researcher clicks ``Compute Calibration.'' The system runs a calibration algorithm (likely implementing Zhang's method for camera calibration) on the collected image pairs. This computes parameters such as camera intrinsics for each camera and the extrinsic transform that aligns thermal to RGB.
+    \item The system stores the resulting calibration parameters (e.g. in a calibration result file or in config). It also might display an estimate of calibration error (so the Researcher can judge quality). For instance, if the reprojection error exceeds the threshold (say, threshold = 1.0 pixel), the system might warn that the calibration quality is low.
+    \item The Researcher is satisfied with the calibration (error is acceptable). They save the calibration profile. Now the system will use this calibration data in future sessions to correct or align thermal images to the RGB frame if needed (this might be done in post-processing rather than during recording). The Researcher exits the calibration mode.
+\end{itemize}
+
+\textbf{Alternate Flows:}
+\begin{itemize}
+    \item \emph{Calibration failure:} If the system cannot detect the calibration pattern in the images (e.g., poor contrast in thermal image), it notifies the Researcher. The Researcher can then recapture images (maybe adjust the pattern distance or lighting) until the system successfully computes a calibration.
+    \item \emph{Partial calibration:} The Researcher may choose only to calibrate intrinsics of each camera separately (for example, if thermal-RGB alignment is less important than ensuring each camera's lens distortion is corrected). In this case, the flow would be adjusted to capture images of a known grid for each camera independently.
+    \item \emph{Using stored calibration:} If calibration was done previously, the Researcher might skip this use case entirely and rely on the stored calibration parameters. The system allows loading a saved calibration file, which then becomes active for subsequent recordings.
+\end{itemize}
+
+\subsection{Use Case 3 (Secondary): Reviewing and Managing Session Data}
+(Optional) -- This use case would describe how a researcher can use the system to review past session metadata and possibly replay or export data. (For brevity, this is not expanded here, but the system does include features like session listing and possibly data export tools, given that a web UI template for sessions exists.)
+
+
+\section{System Analysis (Architecture \& Data Flow)}
+\label{sec:system-analysis}
+\textbf{System Architecture:} The system adopts a \textbf{distributed architecture} with a central \textbf{PC Controller} and multiple \textbf{Mobile Recording Units}. The PC (a Python desktop application) acts as the master, coordinating all devices, while each Android device runs a recording application that functions as a client node. This architecture is essentially a \textbf{hub-and-spoke topology}, where the PC hub maintains control and timing, and the spokes (sensors/cameras) carry out data collection.
+
+On the PC side, the software is organised into modular managers, each responsible for a subset of functionality: -- The \textbf{Session Manager} handles the overall session lifecycle (creation, metadata logging, and closure). -- The \textbf{Network Server} component (within the \texttt{AndroidDeviceManager} and \texttt{PCServer} classes) manages communication with Android devices over TCP/IP (listening on a specified port, e.g. 9000). It uses a custom JSON-based protocol for commands and status messages. -- The \textbf{Shimmer Manager} deals with the Shimmer GSR sensors, including Bluetooth connectivity (via the PyShimmer library if available) and data streaming to the PC. It also multiplexes data from multiple sensors and writes sensor data to CSV files in real-time. -- The \textbf{Time synchronisation Service} (Master Clock) runs on the PC to keep device clocks aligned. As seen in the code, an \texttt{NTPTimeServer} thread on the PC listens on a port (e.g. 8889) and services time-sync requests from clients. It periodically syncs with external NTP sources for accuracy and provides time offset information to the Android devices, which adjust their local clocks accordingly. -- The \textbf{GUI Module} (built with PyQt5 or a similar framework) provides the desktop interface. It includes panels for device status, session control, and live previews. This GUI updates based on callbacks and status data from the managers (for instance, when a new device connects, the Shimmer Manager invokes a callback that the GUI listens to, so it can display the device).
+
+On the Android side, each device's application is composed of several components: -- A \textbf{Recording Controller} that receives start/stop commands from the PC and controls the local recording (camera and sensor capture). -- Separate \textbf{Recorder modules} for each modality: e.g., \texttt{CameraRecorder} for RGB video, \texttt{ThermalRecorder} for thermal imaging, and \texttt{ShimmerRecorder} if the Android is paired to a Shimmer sensor (see Appendix F.2 for implementation details). These recorders interface with hardware (camera APIs, etc.) and save data to local storage. A Network Client (or Device Connection Manager) that maintains the socket connection to the PC's server. It listens for commands (e.g., start/stop, sync signal) and sends back status updates or data as needed. A FileTransferManager on Android handles sending the recorded files to the PC upon request after recording. Utility components like a Security Manager (ensuring encryption if TLS is used), a Storage Manager (to check available space and organise files), etc., are also part of the design (many of these are referenced in the architecture documentation).
+
+\textbf{Communication and Data Flow:} All communication between the PC and Android devices uses a client-server model. The PC runs the server (listening on a specified host/port, with a maximum number of connections defined), and each Android client connects to it when ready. Messages are encoded in JSON and sent over a persistent TCP socket \cite{ref21}. Important message types include: device registration/hello, start session command, stop session command, sync signal command, status update from device, file transfer requests, etc.
+
+During a session, the data flow is as follows: \textbf{Shimmer GSR Data:} If a Shimmer sensor is directly connected to the PC, it streams data via Bluetooth to the PC's Shimmer Manager, which then immediately enqueues the data for writing to a CSV and also triggers any real-time displays. Suppose the Shimmer is connected to an Android (i.e., Android-mediated). In that case, the sensor data first goes to the Android (via Bluetooth), and the Android then forwards each GSR sample (or batch of samples) over the network to the PC. This is handled by the \texttt{AndroidDeviceManager.\_on\_android\_shimmer\_data} callback on the PC side, which receives \texttt{ShimmerDataSample} objects from the device and processes them similarly (see Appendix F.3 for implementation details). In both cases, each GSR sample is timestamped (using the synchronised clock) and logged. The PC might accumulate these in memory (e.g., in \texttt{data\_queues}) briefly for processing but ultimately writes them out via a background file-writing thread.
+
+\textbf{Video and Thermal Data:} The Android devices record video and thermal streams locally to their flash storage (to avoid saturating the network by streaming raw video). The PC may receive low-frequency updates or thumbnails for monitoring, but the bulk video data stays on the device until session end. The temporal synchronisation of video with GSR is ensured by all devices starting recording upon the same start command and using synchronised clocks. Additionally, the PC's sync signal (flash) provides a reference point that can be seen in the video and is logged in the GSR timeline, tying the streams together. After the recording, when the PC issues the file transfer, the video files are sent to the PC. This transfer uses the network (possibly chunking files if large). The FileTransferHandler on PC receives each chunk or file and saves it. Because the PC knows the session start time and each video frame's device timestamp (the Android might embed timestamp metadata in video or provide a separate timestamp log), alignment can be done in post-processing. There is also a possibility that the Android app sends periodic timestamps during recording to the PC (as part of SessionSynchroniser updates) so the PC is aware of recording progress.
+
+\textbf{Time Sync and Heartbeats:} The PC periodically sends time sync packets to the Android devices or upon request. The \texttt{SessionSynchronizer} on the PC maintains a heartbeat, marking a device offline if no state update is received for a while. Android devices send a status message every few seconds (``I'm alive, recording, file X size = ...''). This data flow keeps the PC updated on each device's status (e.g., recorded frames or storage used).
+
+\textbf{Data Aggregation:} After all data arrives at the PC, session aggregation occurs. The Session Manager may invoke post-processing functions, including hand segmentation of the recorded video. Once all files are ready, the PC can combine or index them, such as generating a timestamp index. This process centralises and organises data from distributed sources in the PC's file system.
+
+\begin{figure}[ht]
+    \centring
+    % TODO: Render Mermaid diagram at docs\thesis_report\final\fig_3_1_architecture.mmd to PDF/PNG and include here via \includegraphics.
+    \fbox{TODO: Insert Figure 3.1 rendered from Mermaid}
+    \caption{System Architecture overview (see mermaid source: fig\_3\_1\_architecture.mmd)}
+    \label{fig:figure_3_1_architecture}
+\end{figure}
+
+\textbf{Key Design Considerations:} The architecture enhances scalability by separating data producers (devices) from the central coordinator. Each Android device records and stores data locally to prevent network overload. The PC prioritizes low-bandwidth critical data, such as GSR streams and commands. Local storage followed by data transfer minimizes network bandwidth risks to recording quality. Threads and asynchronous I/O on the PC allow resource use to scale with added devices without deadlocking.
+
+The architecture provides fault isolation: if one device fails, the PC manages the others. The SessionSynchronizer acts as a watchdog and queue, ensuring session coherence after connectivity is restored.
+
+
+\section{Risk Management and Mitigation Strategies}
+The development and deployment of this multi-sensor recording system presents several technical and operational risks that require careful management:
+
+\subsection{Technical Risks}
+\textbf{Risk: Device Discovery Failures}\\
+\emph{Impact}: Android devices may be undetectable on the network, blocking session initiation\\
+\emph{Likelihood}: Medium (network configuration dependencies)\\
+\emph{Mitigation}: Developed a Zeroconf/mDNS service with manual IP fallback, exponential backoff retries, and clear diagnostic messages.
+
+\textbf{Risk: Synchronisation Drift}\\
+\emph{Impact}: Temporal misalignment between devices may compromise data quality in multi-modal analysis\\
+\emph{Likelihood}: Medium (drift during long sessions)\\
+\emph{Mitigation}: Continuous NTP clock synchronisation; monotonic clock sources; post-processing alignment verification; configurable tolerance thresholds
+
+\textbf{Risk: UI Responsiveness Issues}\\
+\emph{Impact}: Interface freezes during high data throughput disrupts workflow\\
+\emph{Likelihood}: Low\\
+\emph{Mitigation}: Async I/O; progress indicators; user feedback; graceful degradation
+
+\textbf{Risk: Data Transfer Integrity}\\
+\emph{Impact}: Incomplete transfers may cause data loss.\\
+\emph{Likelihood}: Low (robust design)\\
+\emph{Mitigation}: SHA-256 checksums; retry mechanisms; timeouts; atomic operations; backup validation
+
+\subsection{Operational Risks}
+\textbf{Risk: Sensor Hardware Limitations}\\
+\emph{Impact}: Malfunctions in the thermal camera or GSR sensor may impact data modalities.\\
+\emph{Likelihood}: Medium (hardware dependency)\\
+\emph{Mitigation}: Modular architecture enables graceful degradation, alternative sensor support, error reporting, and device health monitoring.
+
+\textbf{Risk: Network Bandwidth Constraints}\\
+\emph{Impact}: Insufficient network capacity can cause dropped frames or failed transfers.\\
+\emph{Likelihood}: Medium (varying by environment)\\
+\emph{Mitigation}: Adaptive quality settings; compression; bandwidth monitoring; local storage with delayed transfer
+
+\subsection{Project Management Risks}
+\textbf{Risk: Complexity Management}\\
+\emph{Impact}: System complexity can lead to maintenance issues and technical debt.\\
+\emph{Likelihood}: Medium (inherent multi-platform complexity)\\
+\emph{Mitigation}: Implemented ADR for design decisions; modular architecture with clear interfaces; robust testing; code quality monitoring
+
+\textbf{Risk: Integration Challenges}\\
+\emph{Impact}: Cross-platform compatibility can limit system deployment\\
+\emph{Likelihood}: Low (extensive testing)\\
+\emph{Mitigation}: Multi-platform testing (Windows, Linux, macOS); standard protocols; few dependencies; extensive documentation

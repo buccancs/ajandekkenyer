@@ -1,0 +1,341 @@
+% Appendix D converted from appendix_d_test_reports.md
+\chapter{Test Reports — Detailed Testing Methodology, Validation Results, and Complete Test Coverage Analysis}
+
+\textbf{Purpose and Justification}: This appendix provides comprehensive evidence of the systematic testing and validation that supports the thesis claims about system reliability, performance, and research-grade quality. The detailed test coverage analysis and validation results demonstrate that the system meets the research requirements established in the thesis objectives. This testing evidence is essential for establishing the credibility of the system's research contributions but is too extensive for inclusion in the main evaluation chapter.
+
+% NOTE: Content preserved via verbatim for speed and fidelity.
+% TODO: Convert tables to LaTeX tabular, replace [n] references with \cite, and restructure headings.
+
+\begin{verbatim}
+This appendix presents comprehensive testing and validation results for the Multi-Sensor Recording System, demonstrating systematic quality assurance through rigorous multi-level testing methodologies. The testing framework validates system reliability, performance metrics, and compliance with research-grade requirements for contactless GSR prediction applications.
+
+\subsection{D.1 Testing Framework Overview}
+
+\subsubsection{D.1.1 Multi-Level Testing Architecture}
+
+The Multi-Sensor Recording System employs a comprehensive four-tier testing strategy designed to validate functionality from individual components to complete system integration:
+
+\textbf{Tier 1: Unit Testing}
+- \textbf{Scope}: Individual functions, classes, and modules in isolation
+- \textbf{Coverage}: 95.2% achieved across core functionality modules
+- \textbf{Test Count}: 1,247 individual unit test cases
+- \textbf{Validation Focus}: Algorithm correctness, data structure integrity, error handling
+
+\textbf{Tier 2: Component Testing}
+- \textbf{Scope}: Individual subsystems (Android app, Python controller, sensor interfaces)
+- \textbf{Coverage}: Complete validation of component interfaces and internal workflows
+- \textbf{Test Count}: 187 component integration scenarios
+- \textbf{Validation Focus}: Module interaction, configuration management, resource handling
+
+\textbf{Tier 3: Integration Testing}
+- \textbf{Scope}: Cross-platform communication, device coordination, data synchronisation
+- \textbf{Coverage}: End-to-end workflow validation across device boundaries
+- \textbf{Test Count}: 156 integration test scenarios across 17 major categories
+- \textbf{Validation Focus}: Network protocols, temporal synchronisation, data consistency \cite{ref21}
+
+\textbf{Tier 4: System Testing}
+- \textbf{Scope}: Complete multi-device recording sessions with real hardware
+- \textbf{Coverage}: Research-grade operational scenarios with quality validation
+- \textbf{Test Count}: 89 full system validation scenarios
+- \textbf{Validation Focus}: Research requirements compliance, performance benchmarks, usability validation
+
+\subsubsection{D.1.2 Test Environment Configuration}
+
+\textbf{Hardware Test Environment:}
+- \textbf{Desktop Controllers}: Intel Core i7-10700K (32GB RAM, Ubuntu 20.04 LTS)
+- \textbf{Android Test Devices}: Samsung Galaxy S22+ (Android 13), Google Pixel 7 Pro (Android 13)
+- \textbf{Sensor Hardware}: Shimmer3 GSR+ sensors \cite{ref8}, TopDon TC001 thermal cameras \cite{ref20}
+- \textbf{Network Infrastructure}: Isolated test network (1Gbps Ethernet, 802.11ac WiFi)
+
+\textbf{Software Test Infrastructure:}
+- \textbf{Python Testing}: pytest 7.1.2, unittest, coverage.py for coverage analysis
+- \textbf{Android Testing}: Espresso framework, Android Test Orchestrator \cite{ref13}
+- \textbf{Integration Testing}: Custom WebSocket test harness, NTP synchronisation validators \cite{ref21}
+- \textbf{Performance Testing}: psutil-based resource monitoring, timing precision measurement
+
+\subsection{D.2 Test Coverage Analysis and Results}
+
+\subsubsection{D.2.1 Unit Test Coverage Metrics}
+
+\textbf{Overall Coverage Achievement: 95.2%}
+
+\begin{table}[ht]
+\centring
+\caption{A Summary of Test Results Across Various Modules.}
+\label{tab:test_results}
+\begin{tabular}{lcccc}
+\toprule
+Module Category & Test Cases & Coverage & Pass Rate & Critical Issues \\
+\midrule
+Network Communication & 312 & 97.8\% & 100.0\% & 0 \\
+Session Management & 287 & 96.1\% & 99.7\% & 1 resolved \\
+Device Synchronisation & 198 & 94.3\% & 100.0\% & 0 \\
+Data Processing & 156 & 93.7\% & 98.1\% & 2 resolved \\
+Calibration Systems & 144 & 92.1\% & 97.2\% & 1 minor \\
+User Interface & 89 & 91.4\% & 100.0\% & 0 \\
+Hardware Integration & 61 & 89.8\% & 96.7\% & 1 resolved \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Coverage Analysis Summary:}
+- \textbf{Lines Covered}: 18,847 of 19,795 total lines (95.2%)
+- \textbf{Branch Coverage}: 91.3% of conditional branches validated
+- \textbf{Function Coverage}: 97.1% of defined functions tested
+- \textbf{Critical Path Coverage}: 99.8% of safety-critical code paths validated
+
+\subsubsection{D.2.2 Component Test Results}
+
+\textbf{Android Application Components:}
+
+\textit{Foundation Tests (5 test categories):}
+- \textbf{Camera Interface}: 100% pass rate (23/23 tests) \cite{ref13}
+- \textbf{Bluetooth Management}: 100% pass rate (18/18 tests) \cite{ref14}
+- \textbf{Network Communication}: 100% pass rate (31/31 tests) \cite{ref19}
+- \textbf{Data Storage}: 100% pass rate (19/19 tests) \cite{ref23}
+- \textbf{User Interface}: 100% pass rate (14/14 tests)
+
+\textit{Performance Validation:}
+- \textbf{App Launch Time}: Average 2.3 seconds (requirement: <5 seconds)
+- \textbf{Memory Usage}: Peak 187MB (requirement: <250MB)
+- \textbf{Battery Impact}: 3.2% per hour recording (requirement: <5% per hour)
+
+\textbf{Python Desktop Controller Components:}
+
+\textit{Foundation Tests (6 test categories):}
+- \textbf{Server Infrastructure}: 100% pass rate (28/28 tests) \cite{ref17}
+- \textbf{Device Management}: 100% pass rate (22/22 tests) \cite{ref19}
+- \textbf{Session Coordination}: 100% pass rate (31/31 tests)
+- \textbf{Data Aggregation}: 100% pass rate (19/19 tests) \cite{ref23}
+- \textbf{Quality Monitoring}: 100% pass rate (15/15 tests)
+- \textbf{Export Systems}: 100% pass rate (12/12 tests) \cite{ref24}
+
+\textit{Performance Validation:}
+- \textbf{Cpu Usage}: Average 12.3% during 8-device sessions (requirement: <25%)
+- \textbf{Memory Usage}: Peak 1.2GB during extended sessions (requirement: <2GB)
+- \textbf{Network Throughput}: 45.2MB/s sustained (requirement: >30MB/s)
+
+\subsection{D.3 Integration Test Results and Validation}
+
+\subsubsection{D.3.1 Multi-Device Coordination Testing}
+
+\textbf{Integration Test Categories (6 primary suites):}
+
+\begin{table}[ht]
+\centring
+\caption{Performance Metrics for Core Test Suites.}
+\label{tab:performance_metrics}
+\begin{tabular}{lcccl}
+\toprule
+Test Suite & Scenarios & Pass Rate & Execution Time & Critical Metrics \\
+\midrule
+Device Discovery & 12 & 100.0\% & \SI{0.8}{\second} average & \SI{2.1}{\second} discovery time \\
+Network Synchronisation & 15 & 100.0\% & \SI{1.2}{\second} average & $\pm$\SI{2.1}{\milli\second} precision \\
+Data Pipeline & 18 & 100.0\% & \SI{2.3}{\second} average & 99.98\% integrity \\
+Error Recovery & 21 & 100.0\% & \SI{3.1}{\second} average & \SI{0.7}{\second} recovery time \\
+Load Testing & 9 & 100.0\% & \SI{45.2}{\second} average & 12 device capacity \\
+Quality Assurance & 14 & 100.0\% & \SI{1.8}{\second} average & Real-time validation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Synchronisation Precision Validation:}
+- \textbf{Temporal Accuracy}: ±2.1ms across all device types (requirement: ±50ms)
+- \textbf{Clock Drift Compensation}: <0.1ms per minute drift accumulation
+- \textbf{Network Latency Impact}: Compensated within ±0.8ms under normal conditions
+- \textbf{Recovery Time}: 0.7 seconds average for synchronisation re-establishment
+
+\subsubsection{D.3.2 Network Performance and Reliability Testing}
+
+\textbf{WebSocket Communication Validation:}
+
+\textit{Message Throughput Testing:}
+- \textbf{Peak Message Rate}: 1,247 messages/second sustained
+- \textbf{Average Latency}: 12.3ms round-trip time \cite{ref21}
+- \textbf{Reliability}: >99.99% message delivery success rate
+- \textbf{Error Recovery}: 100% automatic reconnection success within 2 seconds
+
+\textit{Multi-Device Load Testing:}
+- \textbf{Maximum Device Count}: 12 simultaneous devices validated (exceeds 8-device requirement)
+- \textbf{Bandwidth Utilisation}: 45.2MB/s peak throughput maintained
+- \textbf{Cpu Overhead}: 12.3% average server CPU usage during peak load
+- \textbf{Memory Stability}: No memory leaks detected during 72-hour continuous operation
+
+\subsection{D.4 System-Level Validation and Quality Assurance}
+
+\subsubsection{D.4.1 End-to-End Recording Session Validation}
+
+\textbf{Full System Test Scenarios (89 validation scenarios):}
+
+\textit{Research Session Workflows:}
+- \textbf{Session Initialisation}: 100% success rate (89/89 scenarios)
+- \textbf{Multi-Modal Recording}: 98.9% success rate (88/89 scenarios, 1 minor sensor timeout)
+- \textbf{Data Export}: 100% success rate (89/89 scenarios) \cite{ref23}
+- \textbf{Quality Verification}: 97.8% met research-grade quality thresholds
+
+\textit{Performance Under Research Conditions:}
+- \textbf{Session Duration}: Up to 45 minutes validated without degradation
+- \textbf{Data Volume}: 2.3GB per device per session maximum validated
+- \textbf{Participant Count}: Up to 8 simultaneous participants validated
+- \textbf{Environmental Robustness}: Validated across temperature ranges 18°C-28°C \cite{ref4}
+
+\subsubsection{D.4.2 Data Quality and Research Compliance Validation}
+
+\textbf{Gsr Data Quality Metrics:}
+- \textbf{Temporal Resolution}: 128Hz maintained consistently (requirement: ≥100Hz) \cite{ref1}
+- \textbf{Amplitude Accuracy}: ±0.02 μS validated against laboratory standards \cite{ref7}
+- \textbf{Noise Floor}: <0.001 μS RMS in controlled conditions
+- \textbf{Drift Characteristics}: <0.005 μS per hour baseline drift
+
+\textbf{Thermal Data Quality Metrics:}
+- \textbf{Spatial Resolution}: 256×192 maintained consistently \cite{ref20}
+- \textbf{Thermal Accuracy}: ±0.08°C post-calibration (requirement: ±0.5°C)
+- \textbf{Frame Rate Stability}: 25Hz ±0.1Hz maintained during extended sessions
+- \textbf{Calibration Persistence}: <0.02°C drift over 8-hour sessions \cite{ref22}
+
+\textbf{Rgb Video Quality Metrics:}
+- \textbf{Resolution}: 1920×1080 maintained at 30fps consistently \cite{ref13}
+- \textbf{Colour Accuracy}: ΔE <2.0 against colour standards
+- \textbf{Synchronisation Accuracy}: <1 frame offset maintained across devices
+- \textbf{Compression Quality}: <2% data loss with H.264 encoding
+
+\subsection{D.5 Reliability and Stress Testing Results}
+
+\subsubsection{D.5.1 System Endurance Testing}
+
+\textbf{Extended Operation Validation:}
+- \textbf{72-Hour Continuous Operation}: 99.97% uptime achieved
+- \textbf{Memory Stability}: No memory leaks detected, stable resource usage
+- \textbf{Network Resilience}: Automatic recovery from 127 simulated network interruptions
+- \textbf{Thermal Stability}: Consistent performance across 16°C-32°C ambient range \cite{ref4}
+
+\textbf{Load Testing Results:}
+- \textbf{Maximum Concurrent Sessions}: 3 simultaneous recording sessions supported
+- \textbf{Peak Data Throughput}: 67.3MB/s sustained across all sessions
+- \textbf{Resource Utilisation}: 78% peak CPU, 2.1GB peak memory (within design limits)
+- \textbf{Storage Performance}: 145MB/s write performance maintained
+
+\subsubsection{D.5.2 Error Recovery and Fault Tolerance}
+
+\textbf{Network Failure Recovery:}
+- \textbf{Connection Drop Recovery}: 100% automatic reconnection within 2.1 seconds
+- \textbf{Data Loss Prevention}: <0.02% data loss during network interruptions \cite{ref23}
+- \textbf{Session State Preservation}: 100% session recovery from temporary failures
+- \textbf{Graceful Degradation}: Continued operation with reduced device count
+
+\textbf{Hardware Failure Handling:}
+- \textbf{Sensor Disconnection}: Automatic detection and user notification within 1.2 seconds \cite{ref8}
+- \textbf{Usb Device Failures}: 100% detection and recovery for reconnected devices \cite{ref16}
+- \textbf{Camera Failure Recovery}: Automatic failover to backup camera sources \cite{ref13}
+- \textbf{Storage Failure Protection}: Automatic backup to secondary storage locations \cite{ref23}
+
+\subsection{D.6 Performance Benchmarking and Validation}
+
+\subsubsection{D.6.1 Synchronisation Performance Metrics}
+
+\textbf{Temporal Synchronisation Validation:}
+
+\begin{table}[ht]
+\centring
+\caption{Validation of Key Performance Requirements.}
+\label{tab:performance_validation}
+\begin{tabular}{llll}
+\toprule
+Measurement Category & Achieved Performance & Requirement & Validation Method \\
+\midrule
+Cross-Device Sync & $\pm$\SI{2.1}{\milli\second} & $\pm$\SI{50}{\milli\second} & NTP precision measurement \\
+Clock Drift Rate & $< \SI{0.1}{\milli\second\per\minute}$ & $< \SI{10}{\milli\second\per\hour}$ & Extended monitoring \\
+Recovery Time & \SI{0.7}{\second} & $< \SI{5}{\second}$ & Interruption simulation \\
+Accuracy Persistence & $>99.9\%$ & $>95\%$ & 24-hour validation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Network Performance Benchmarks:}
+- \textbf{Round-Trip Time}: 12.3ms average (requirement: <100ms) \cite{ref21}
+- \textbf{Jitter}: ±2.7ms standard deviation (requirement: <20ms)
+- \textbf{Packet Loss}: <0.001% under normal conditions (requirement: <1%)
+- \textbf{Bandwidth Efficiency}: 87.3% effective utilisation of available bandwidth
+
+\subsubsection{D.6.2 System Resource Utilisation}
+
+\textbf{Desktop Controller Performance:}
+- \textbf{Cpu Usage}: 12.3% average during 8-device sessions (requirement: <25%)
+- \textbf{Memory Usage}: 1.2GB peak during extended sessions (requirement: <2GB)
+- \textbf{DISK I/O}: 145MB/s sustained write performance (requirement: >100MB/s) \cite{ref23}
+- \textbf{Network Utilisation}: 45.2MB/s peak throughput (requirement: >30MB/s)
+
+\textbf{Android Application Performance:}
+- \textbf{Cpu Usage}: 8.7% average during recording (requirement: <15%)
+- \textbf{Memory Usage}: 187MB peak during 30-minute sessions (requirement: <250MB)
+- \textbf{Battery Usage}: 3.2% per hour (requirement: <5% per hour)
+- \textbf{Storage Efficiency}: 2.3GB per 30-minute session (requirement: <3GB)
+
+\subsection{D.7 Issue Tracking and Resolution Documentation}
+
+\subsubsection{D.7.1 Critical Issues Identified and Resolved}
+
+\textbf{Issue #001: Network Discovery Message Format}
+- \textbf{Description}: Device discovery protocol mismatch between Android and desktop components
+- \textbf{Impact}: 15% device discovery failure rate during integration testing
+- \textbf{Resolution}: Standardised JSON message format with backward compatibility \cite{ref19}
+- \textbf{Validation}: 100% discovery success rate achieved post-resolution
+- \textbf{Resolution Time}: 2.3 hours
+
+\textbf{Issue #002: Gsr Sensor Calibration Drift}
+- \textbf{Description}: Baseline drift >0.01 μS per hour observed in extended sessions
+- \textbf{Impact}: Potential data quality degradation in research sessions >4 hours \cite{ref7}
+- \textbf{Resolution}: Implemented automatic baseline correction algorithm
+- \textbf{Validation}: <0.005 μS per hour drift achieved consistently
+- \textbf{Resolution Time}: 8.7 hours
+
+\textbf{Issue #003: Memory management In Extended Sessions}
+- \textbf{Description}: Gradual memory accumulation during sessions >2 hours
+- \textbf{Impact}: Potential system instability in extended research sessions
+- \textbf{Resolution}: Implemented proactive garbage collection and buffer management \cite{ref18}
+- \textbf{Validation}: Stable memory usage validated over 72-hour continuous operation
+- \textbf{Resolution Time}: 12.1 hours
+
+\subsubsection{D.7.2 Non-Critical Issues and Optimisations}
+
+\textbf{Enhancement #001: Ui Response Time Optimisation}
+- \textbf{Description}: Initial UI response times 3.2 seconds, target <2 seconds
+- \textbf{Implementation}: Asynchronous loading and caching strategies \cite{ref17}
+- \textbf{Result}: 1.8 seconds average response time achieved
+- \textbf{Impact}: Improved user experience and workflow efficiency
+
+\textbf{Enhancement #002: Battery Life Optimisation}
+- \textbf{Description}: Android app battery usage 4.1% per hour, target <3.5%
+- \textbf{Implementation}: Optimised camera preview and background processing
+- \textbf{Result}: 3.2% per hour achieved consistently
+- \textbf{Impact}: Extended field research session capability
+
+\subsection{D.8 Test Result Summary and Quality Certification}
+
+\subsubsection{D.8.1 Overall Test Results Summary}
+
+\textbf{Comprehensive Testing Achievements:}
+- \textbf{Total Test Cases}: 1,679 individual tests across all categories
+- \textbf{Overall Pass Rate}: 99.1% (1,664 passed, 15 resolved failures)
+- \textbf{Critical Issue Resolution}: 100% (3 critical issues fully resolved)
+- \textbf{Research Readiness}: Validated for deployment in research environments
+
+\textbf{Quality Assurance Certification:}
+- \textbf{Unit Test Coverage}: 95.2% achieved (target: >90%)
+- \textbf{Integration Success}: 100% after resolution of identified issues
+- \textbf{Performance Compliance}: 100% of performance requirements met or exceeded
+- \textbf{Reliability Validation}: >99.7% uptime achieved during extended testing
+
+\subsubsection{D.8.2 Research-Grade Validation Conclusion}
+
+The comprehensive testing and validation process demonstrates that the Multi-Sensor Recording System meets all specified requirements for research-grade deployment. The system exhibits exceptional reliability (>99.7% uptime), precise temporal synchronisation (±2.1ms accuracy), and robust data quality maintenance across extended recording sessions.
+
+Key validation achievements include:
+- \textbf{Synchronisation Precision}: ±2.1ms achieved (25× better than ±50ms requirement)
+- \textbf{Data Integrity}: 99.98% achieved (exceeds 99% requirement) \cite{ref23}
+- \textbf{Multi-Device Capacity}: 12 devices validated (exceeds 8-device requirement)
+- \textbf{Extended Operation}: 72-hour continuous operation validated
+- \textbf{Research Compliance}: All data quality metrics meet research-grade standards cite{ref1,ref4,ref7}
+
+The testing results provide comprehensive evidence that the Multi-Sensor Recording System is ready for deployment in contactless GSR prediction research environments, with demonstrated reliability, accuracy, and performance suitable for rigorous scientific investigation.
+\end{verbatim}

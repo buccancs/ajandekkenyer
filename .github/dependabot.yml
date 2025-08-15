@@ -1,0 +1,173 @@
+
+# GitHub Dependabot configuration for automated dependency management
+# Addresses Medium Priority recommendation: "Automate dependency alerts"
+
+version: 2
+updates:
+  # Python dependencies (pip)
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "buccancs"
+    labels:
+      - "dependencies"
+      - "python"
+      - "security"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      # Pin major version updates for critical dependencies
+      - dependency-name: "PyQt5"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "opencv-python"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "deps(python)"
+      include: "scope"
+
+  # Android Gradle dependencies
+  - package-ecosystem: "gradle"
+    directory: "/AndroidApp"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "buccancs"
+    labels:
+      - "dependencies"
+      - "android"
+      - "gradle"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      # Pin Android API level updates for stability
+      - dependency-name: "com.android.application"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.jetbrains.kotlin.android"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "deps(android)"
+      include: "scope"
+
+  # Root Gradle configuration
+
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "10:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "buccancs"
+    labels:
+      - "dependencies"
+      - "gradle"
+      - "build-tools"
+    commit-message:
+      prefix: "deps(gradle)"
+      include: "scope"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "buccancs"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci-cd"
+    commit-message:
+      prefix: "deps(actions)"
+      include: "scope"
+
+  # Docker dependencies (if any Dockerfiles exist)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "first-monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "buccancs"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "deps(docker)"
+      include: "scope"
+      day: "monday"
+      time: "10:00"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "android"
+      - "security"
+    reviewers:
+      - "android-team"
+      - "security-team"
+    commit-message:
+      prefix: "security(android):"
+      prefix-development: "deps(android):"
+      include: "scope"
+    # Group Android security updates
+    groups:
+      android-security:
+        patterns:
+          - "*security*"
+          - "*crypto*"
+          - "androidx.security:*"
+          - "com.google.android.material:*"
+          - "androidx.core:*"
+        update-types:
+          - "security-update"
+          - "minor"
+    # Ignore alpha/beta versions for security-critical dependencies
+    ignore:
+      - dependency-name: "androidx.security:security-crypto"
+        versions: ["1.1.0-alpha*", "1.1.0-beta*", "1.1.0-rc*"]
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+        
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "ci-cd"
+      - "security"
+    commit-message:
+      prefix: "ci:"
+      include: "scope"
+    # Group action updates
+    groups:
+      actions-security:
+        patterns:
+          - "actions/checkout*"
+          - "actions/setup-*"
+          - "github/codeql-action*"
+        update-types:
+          - "minor"
+          - "patch"
+
