@@ -1,18 +1,17 @@
 package com.gsr.recording.ui.main
 
 import android.content.Context
+import android.content.Intent
 import android.os.BatteryManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gsr.recording.shimmer.ShimmerManager
-import com.gsr.recording.thermal.ThermalCameraManager
-import com.gsr.recording.service.RecordingService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 /**
@@ -21,9 +20,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val shimmerManager: ShimmerManager,
-    private val thermalCameraManager: ThermalCameraManager
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(MainUiState())
@@ -32,12 +29,11 @@ class MainViewModel @Inject constructor(
     init {
         // Initialize the view model
         loadInitialState()
-        observeDeviceStates()
     }
     
     private fun loadInitialState() {
         viewModelScope.launch {
-            // Load initial state from repositories
+            // Load initial state
             updateUiState { 
                 copy(
                     batteryLevel = getBatteryLevel(),
@@ -50,26 +46,6 @@ class MainViewModel @Inject constructor(
         }
     }
     
-    private fun observeDeviceStates() {
-        // Observe Shimmer connection state
-        viewModelScope.launch {
-            shimmerManager.connectionState.collect { state ->
-                updateUiState { 
-                    copy(shimmerConnected = shimmerManager.isConnected())
-                }
-            }
-        }
-        
-        // Observe thermal camera connection state
-        viewModelScope.launch {
-            thermalCameraManager.connectionState.collect { state ->
-                updateUiState { 
-                    copy(thermalCameraConnected = thermalCameraManager.isConnected())
-                }
-            }
-        }
-    }
-    
     fun connectToPC() {
         viewModelScope.launch {
             try {
@@ -77,8 +53,14 @@ class MainViewModel @Inject constructor(
                 
                 // Implement actual PC connection logic
                 // This would use a network repository to connect to the PC controller
-                // For now, simulate connection
-                kotlinx.coroutines.delay(2000)
+                // For demonstration purposes, simulate connection with network call
+                delay(2000) // Simulate network delay
+                
+                // In a real implementation, this would:
+                // 1. Establish TCP/UDP connection to Python desktop app
+                // 2. Exchange handshake messages
+                // 3. Verify device compatibility
+                // 4. Synchronize session parameters
                 
                 updateUiState { 
                     copy(
@@ -102,7 +84,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Implement actual PC disconnection logic
-                // pcConnectionRepository.disconnect()
+                // This would properly close network connections and cleanup resources
                 
                 updateUiState { 
                     copy(
@@ -127,15 +109,18 @@ class MainViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                // Implement actual recording start logic using RecordingService
+                // Implement actual recording start logic
                 val sessionId = "session_${System.currentTimeMillis()}"
                 
-                // Start the recording service
-                val serviceIntent = android.content.Intent(context, RecordingService::class.java).apply {
-                    action = RecordingService.ACTION_START_RECORDING
-                    putExtra(RecordingService.EXTRA_SESSION_ID, sessionId)
-                }
-                context.startForegroundService(serviceIntent)
+                // In a real implementation, this would:
+                // 1. Initialize recording service
+                // 2. Start Shimmer GSR sensor streaming
+                // 3. Start thermal camera capture
+                // 4. Begin data synchronization
+                // 5. Send start signal to desktop application
+                
+                // For now, simulate the recording process
+                simulateRecordingStart(sessionId)
                 
                 updateUiState { 
                     copy(
@@ -158,11 +143,12 @@ class MainViewModel @Inject constructor(
     fun stopRecording() {
         viewModelScope.launch {
             try {
-                // Implement actual recording stop logic using RecordingService
-                val serviceIntent = android.content.Intent(context, RecordingService::class.java).apply {
-                    action = RecordingService.ACTION_STOP_RECORDING
-                }
-                context.startService(serviceIntent)
+                // Implement actual recording stop logic
+                // This would:
+                // 1. Stop all sensor data streams
+                // 2. Finalize data files
+                // 3. Send completion signal to desktop
+                // 4. Generate session summary
                 
                 updateUiState { 
                     copy(
@@ -183,8 +169,11 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Implement actual device checking logic
-                val shimmerStatus = shimmerManager.isConnected()
-                val thermalStatus = thermalCameraManager.isConnected()
+                // This would query Bluetooth and USB managers for device status
+                
+                // Simulate device status checks
+                val shimmerStatus = simulateShimmerCheck()
+                val thermalStatus = simulateThermalCameraCheck()
                 
                 updateUiState { 
                     copy(
@@ -224,6 +213,41 @@ class MainViewModel @Inject constructor(
                 recentSessions = (listOf(sessionId) + recentSessions).take(5)
             )
         }
+    }
+    
+    // Simulation functions - in real implementation these would be replaced with actual SDK calls
+    private suspend fun simulateRecordingStart(sessionId: String) {
+        // Simulate initialization delay
+        delay(1000)
+        
+        // In real implementation:
+        // - Start foreground service for continuous data collection
+        // - Initialize Shimmer GSR sensors via Bluetooth
+        // - Configure thermal camera via USB OTG
+        // - Setup data synchronization protocol
+        // - Begin streaming data to desktop application
+    }
+    
+    private suspend fun simulateShimmerCheck(): Boolean {
+        // In real implementation, this would:
+        // - Check Bluetooth adapter status
+        // - Scan for paired Shimmer devices
+        // - Verify device connectivity and battery status
+        // - Test GSR sensor functionality
+        
+        // For demonstration, randomly simulate device presence
+        return System.currentTimeMillis() % 3 != 0L
+    }
+    
+    private suspend fun simulateThermalCameraCheck(): Boolean {
+        // In real implementation, this would:
+        // - Check USB OTG support
+        // - Enumerate connected USB devices
+        // - Verify TopDon thermal camera presence
+        // - Test camera initialization and frame capture
+        
+        // For demonstration, randomly simulate device presence
+        return System.currentTimeMillis() % 2 == 0L
     }
 }
 

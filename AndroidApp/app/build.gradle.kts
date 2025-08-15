@@ -100,20 +100,7 @@ dependencies {
     
     // Bluetooth and USB
     implementation("androidx.bluetooth:bluetooth:1.0.0-alpha02")
-    
-    // SDK Dependencies for GSR Recording System
-    // Shimmer Android API for GSR sensor integration
-    implementation("com.shimmerresearch:shimmer-android-api:4.1.0")
-    implementation("com.shimmerresearch:shimmer-driver:4.1.0")
-    
-    // TopDon SDK for thermal camera (InfiSense IRUVC SDK)
-    implementation("com.infisense:iruvc-sdk:1.2.0")
-    implementation("com.topdon:thermal-camera-sdk:2.1.0")
-    
-    // IRCamera components for camera UI
-    implementation("com.github.buccancs:IRCamera:1.0.0")
-    implementation("com.github.buccancs:topdon-sdk:1.0.0")
-    
+
     // JSON Processing
     implementation("com.google.code.gson:gson:2.10.1")
     
