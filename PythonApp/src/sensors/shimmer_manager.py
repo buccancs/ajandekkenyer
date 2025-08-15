@@ -1,6 +1,7 @@
 """
 Shimmer GSR sensor management for the Multi-Sensor Recording System.
 Handles connection, data streaming, and management of Shimmer3 GSR+ sensors.
+Integrated with synchronization system for precise timing.
 """
 
 import csv
@@ -11,6 +12,13 @@ from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass
 from pathlib import Path
 import queue
+
+# Optional import for synchronization
+try:
+    from .lsl_synchronizer import StreamInfo, StreamType, StreamOutlet
+    SYNC_AVAILABLE = True
+except ImportError:
+    SYNC_AVAILABLE = False
 
 
 @dataclass
@@ -51,14 +59,16 @@ class ShimmerDeviceInfo:
 class ShimmerManager:
     """Manages Shimmer GSR sensor connections and data streaming."""
     
-    def __init__(self, config):
+    def __init__(self, config, lsl_synchronizer=None):
         """
         Initialize Shimmer manager.
         
         Args:
             config: System configuration object
+            lsl_synchronizer: Optional LSL synchronizer for streaming
         """
         self.config = config
+        self.lsl_synchronizer = lsl_synchronizer
         self.logger = logging.getLogger(__name__)
         
         # Device management
@@ -69,6 +79,9 @@ class ShimmerManager:
         self.data_queues: Dict[str, queue.Queue] = {}
         self.data_writers: Dict[str, csv.DictWriter] = {}
         self.data_files: Dict[str, Any] = {}
+        
+        # LSL streaming outlets
+        self.stream_outlets: Dict[str, StreamOutlet] = {}
         
         # Threading
         self.streaming_threads: Dict[str, threading.Thread] = {}
@@ -466,6 +479,9 @@ class ShimmerManager:
                             self.data_writers[device_id].writerow(sample_dict)
                             self.data_files[device_id].flush()
                         
+                        # Push to LSL streams if available
+                        self._push_to_lsl_streams(device_id, sample)
+                        
                         # Trigger callback
                         self._trigger_callback('data_received', device_id, sample)
                     else:
@@ -565,6 +581,141 @@ class ShimmerManager:
                 accelerometer_z=getattr(raw_data, 'acc_z', None)
             )
     
+    def create_lsl_streams(self, device_id: str) -> bool:
+        """
+        Create LSL stream outlets for a Shimmer device.
+        
+        Args:
+            device_id: Device identifier
+            
+        Returns:
+            bool: True if streams created successfully
+        """
+        if not SYNC_AVAILABLE or not self.lsl_synchronizer:
+            self.logger.warning("LSL synchronizer not available")
+            return False
+        
+        if device_id not in self.devices:
+            self.logger.error(f"Device {device_id} not found")
+            return False
+        
+        device = self.devices[device_id]
+        
+        try:
+            # Create GSR stream
+            gsr_info = StreamInfo(
+                name=f"Shimmer_GSR_{device_id}",
+                type="GSR",
+                channel_count=1,
+                nominal_srate=float(device.sampling_rate),
+                channel_format=StreamType.FLOAT32,
+                source_id=f"{device_id}_gsr",
+                device_id=device_id,
+                description=f"Galvanic Skin Response from {device.name}"
+            )
+            
+            gsr_outlet = self.lsl_synchronizer.create_outlet(gsr_info)
+            gsr_outlet.start()
+            self.stream_outlets[f"{device_id}_gsr"] = gsr_outlet
+            
+            # Create PPG stream if available
+            if "PPG" in device.enabled_sensors:
+                ppg_info = StreamInfo(
+                    name=f"Shimmer_PPG_{device_id}",
+                    type="PPG",
+                    channel_count=1,
+                    nominal_srate=float(device.sampling_rate),
+                    channel_format=StreamType.FLOAT32,
+                    source_id=f"{device_id}_ppg",
+                    device_id=device_id,
+                    description=f"Photoplethysmography from {device.name}"
+                )
+                
+                ppg_outlet = self.lsl_synchronizer.create_outlet(ppg_info)
+                ppg_outlet.start()
+                self.stream_outlets[f"{device_id}_ppg"] = ppg_outlet
+            
+            # Create accelerometer stream if available
+            if "Accelerometer" in device.enabled_sensors:
+                acc_info = StreamInfo(
+                    name=f"Shimmer_Accelerometer_{device_id}",
+                    type="Accelerometer",
+                    channel_count=3,  # X, Y, Z
+                    nominal_srate=float(device.sampling_rate),
+                    channel_format=StreamType.FLOAT32,
+                    source_id=f"{device_id}_acc",
+                    device_id=device_id,
+                    description=f"Accelerometer data from {device.name}",
+                    channels=[
+                        {"label": "AccX", "unit": "g"},
+                        {"label": "AccY", "unit": "g"},
+                        {"label": "AccZ", "unit": "g"}
+                    ]
+                )
+                
+                acc_outlet = self.lsl_synchronizer.create_outlet(acc_info)
+                acc_outlet.start()
+                self.stream_outlets[f"{device_id}_acc"] = acc_outlet
+            
+            self.logger.info(f"Created LSL streams for device {device_id}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create LSL streams for {device_id}: {e}")
+            return False
+    
+    def stop_lsl_streams(self, device_id: str) -> None:
+        """
+        Stop LSL stream outlets for a device.
+        
+        Args:
+            device_id: Device identifier
+        """
+        streams_to_remove = []
+        
+        for stream_id, outlet in self.stream_outlets.items():
+            if stream_id.startswith(device_id):
+                try:
+                    outlet.stop()
+                    streams_to_remove.append(stream_id)
+                except Exception as e:
+                    self.logger.error(f"Error stopping stream {stream_id}: {e}")
+        
+        for stream_id in streams_to_remove:
+            del self.stream_outlets[stream_id]
+        
+        if streams_to_remove:
+            self.logger.info(f"Stopped {len(streams_to_remove)} LSL streams for {device_id}")
+    
+    def _push_to_lsl_streams(self, device_id: str, sample: ShimmerDataSample) -> None:
+        """
+        Push sample data to LSL streams.
+        
+        Args:
+            device_id: Device identifier
+            sample: Data sample to push
+        """
+        try:
+            # Push GSR data
+            gsr_stream_id = f"{device_id}_gsr"
+            if gsr_stream_id in self.stream_outlets and sample.gsr is not None:
+                self.stream_outlets[gsr_stream_id].push_sample([sample.gsr], sample.timestamp)
+            
+            # Push PPG data
+            ppg_stream_id = f"{device_id}_ppg"
+            if ppg_stream_id in self.stream_outlets and sample.ppg is not None:
+                self.stream_outlets[ppg_stream_id].push_sample([sample.ppg], sample.timestamp)
+            
+            # Push accelerometer data
+            acc_stream_id = f"{device_id}_acc"
+            if acc_stream_id in self.stream_outlets:
+                if all(x is not None for x in [sample.accelerometer_x, sample.accelerometer_y, sample.accelerometer_z]):
+                    acc_data = [sample.accelerometer_x, sample.accelerometer_y, sample.accelerometer_z]
+                    self.stream_outlets[acc_stream_id].push_sample(acc_data, sample.timestamp)
+        
+        except Exception as e:
+            self.logger.error(f"Error pushing to LSL streams for {device_id}: {e}")
+
     def get_connected_devices(self) -> List[ShimmerDeviceInfo]:
         """
         Get list of connected Shimmer devices.
